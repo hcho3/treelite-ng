@@ -44,7 +44,8 @@ target_sources(objtreelite
 set_target_properties(objtreelite
     PROPERTIES
     CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON)
+    CXX_STANDARD_REQUIRED ON
+    POSITION_INDEPENDENT_CODE ON)
 target_compile_features(objtreelite PUBLIC cxx_std_17)
 target_include_directories(objtreelite PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>

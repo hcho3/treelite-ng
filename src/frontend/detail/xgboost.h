@@ -19,10 +19,10 @@ namespace details::xgboost {
 
 struct ProbToMargin {
   static float Sigmoid(float global_bias) {
-    return -std::logf(1.0f / global_bias - 1.0f);
+    return -std::log(1.0f / global_bias - 1.0f);
   }
   static float Exponential(float global_bias) {
-    return std::logf(global_bias);
+    return std::log(global_bias);
   }
 };
 
