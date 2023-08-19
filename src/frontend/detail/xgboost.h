@@ -13,8 +13,6 @@
 
 namespace treelite {
 
-struct ModelParam;  // forward declaration
-
 namespace details::xgboost {
 
 struct ProbToMargin {

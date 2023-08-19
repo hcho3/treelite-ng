@@ -30,7 +30,7 @@ TypeInfo TypeInfoFromString(std::string const& str);
  */
 template <typename T>
 inline TypeInfo TypeInfoFromType() {
-  if (std::is_same<T, uint32_t>::value) {
+  if (std::is_same<T, std::uint32_t>::value) {
     return TypeInfo::kUInt32;
   } else if (std::is_same<T, float>::value) {
     return TypeInfo::kFloat32;

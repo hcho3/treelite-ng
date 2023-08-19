@@ -14,31 +14,35 @@ namespace treelite {
 
 inline std::string TaskTypeToString(TaskType type) {
   switch (type) {
-  case TaskType::kBinaryClfRegr:
-    return "kBinaryClfRegr";
-  case TaskType::kMultiClfGrovePerClass:
-    return "kMultiClfGrovePerClass";
-  case TaskType::kMultiClfProbDistLeaf:
-    return "kMultiClfProbDistLeaf";
-  case TaskType::kMultiClfCategLeaf:
-    return "kMultiClfCategLeaf";
+  case TaskType::kBinaryClf:
+    return "kBinaryClf";
+  case TaskType::kRegressor:
+    return "kRegressor";
+  case TaskType::kMultiClf:
+    return "kMultiClf";
+  case TaskType::kLearningToRank:
+    return "kLearningToRank";
+  case TaskType::kIsolationForest:
+    return "kIsolationForest";
   default:
     return "";
   }
 }
 
 inline TaskType TaskTypeFromString(std::string const& str) {
-  if (str == "kBinaryClfRegr") {
-    return TaskType::kBinaryClfRegr;
-  } else if (str == "kMultiClfGrovePerClass") {
-    return TaskType::kMultiClfGrovePerClass;
-  } else if (str == "kMultiClfProbDistLeaf") {
-    return TaskType::kMultiClfProbDistLeaf;
-  } else if (str == "kMultiClfCategLeaf") {
-    return TaskType::kMultiClfCategLeaf;
+  if (str == "kBinaryClf") {
+    return TaskType::kBinaryClf;
+  } else if (str == "kRegressor") {
+    return TaskType::kRegressor;
+  } else if (str == "kMultiClf") {
+    return TaskType::kMultiClf;
+  } else if (str == "kLearningToRank") {
+    return TaskType::kLearningToRank;
+  } else if (str == "kIsolationForest") {
+    return TaskType::kIsolationForest;
   } else {
     TREELITE_LOG(FATAL) << "Unknown task type: " << str;
-    return TaskType::kBinaryClfRegr;  // to avoid compiler warning
+    return TaskType::kBinaryClf;  // to avoid compiler warning
   }
 }
 

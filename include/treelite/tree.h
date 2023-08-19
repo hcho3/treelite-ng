@@ -56,9 +56,6 @@ namespace treelite {
 
 class GTILBridge;
 
-template <typename ThresholdType, typename LeafOutputType>
-class ModelImpl;
-
 // Used for returning version triple from a Model object
 struct Version {
   std::int32_t major_ver;
@@ -66,188 +63,17 @@ struct Version {
   std::int32_t patch_ver;
 };
 
-/*! \brief Group of parameters that are dependent on the choice of the task type. */
-struct TaskParam {
-  enum class OutputType : uint8_t { kFloat = 0, kInt = 1 };
-  /*! \brief The type of output from each leaf node. */
-  OutputType output_type;
-  /*!
-   * \brief Whether we designate a subset of the trees to compute the prediction for each class.
-   *
-   * If True, the prediction for the i-th class is determined by the trees whose index is congruent
-   * to [i] modulo [num_class]. Only applicable if we are performing classification task with
-   * num_class > 2.
-   */
-  bool grove_per_class;
-  /*!
-   * \brief The number of classes in the target label.
-   *
-   * The num_class field should be >1 only when we're performing multi-class classification.
-   * Otherwise, for tasks such as binary classification, regression, and learning-to-rank, set
-   * num_class=1.
-   */
-  unsigned int num_class;
-  /*!
-   * \brief Dimension of the output from each leaf node.
-   *
-   * If >1, each leaf node produces a 1D vector output. If =1, each leaf node produces a single
-   * scalar.
-   */
-  unsigned int leaf_vector_size;
-};
-
-inline std::string OutputTypeToString(TaskParam::OutputType type) {
-  switch (type) {
-  case TaskParam::OutputType::kFloat:
-    return "float";
-  case TaskParam::OutputType::kInt:
-    return "int";
-  default:
-    return "";
-  }
-}
-
-inline TaskParam::OutputType StringToOutputType(std::string const& str) {
-  if (str == "float") {
-    return TaskParam::OutputType::kFloat;
-  } else if (str == "int") {
-    return TaskParam::OutputType::kInt;
-  } else {
-    TREELITE_LOG(FATAL) << "Unrecognized output type: " << str;
-    return TaskParam::OutputType::kFloat;  // to avoid compiler warning
-  }
-}
-
-static_assert(std::is_pod<TaskParam>::value, "TaskParameter must be POD type");
-
 /*! \brief in-memory representation of a decision tree */
 template <typename ThresholdType, typename LeafOutputType>
 class Tree {
  public:
-  /*! \brief tree node */
-  struct Node {
-    /*! \brief Initialization method.
-     * Use this in lieu of constructor (POD types cannot have a non-trivial constructor) */
-    inline void Init();
-    /*! \brief store either leaf value or decision threshold */
-    union Info {
-      LeafOutputType leaf_value;  // for leaf nodes
-      ThresholdType threshold;  // for non-leaf nodes
-    };
-    /*! \brief pointer to left and right children */
-    std::int32_t cleft_, cright_;
-    /*!
-     * \brief feature index used for the split
-     * highest bit indicates default direction for missing values
-     */
-    std::uint32_t sindex_;
-    /*! \brief storage for leaf value or decision threshold */
-    Info info_;
-    /*!
-     * \brief number of data points whose traversal paths include this node.
-     *        LightGBM models natively store this statistics.
-     */
-    std::uint64_t data_count_;
-    /*!
-     * \brief sum of hessian values for all data points whose traversal paths
-     *        include this node. This value is generally correlated positively
-     *        with the data count. XGBoost models natively store this
-     *        statistics.
-     */
-    double sum_hess_;
-    /*!
-     * \brief change in loss that is attributed to a particular split
-     */
-    double gain_;
-    /*! \brief Node type */
-    TreeNodeType node_type_;
-    /*!
-     * \brief operator to use for expression of form [fval] OP [threshold].
-     * If the expression evaluates to true, take the left child;
-     * otherwise, take the right child.
-     */
-    Operator cmp_;
-    /*! \brief whether data_count_ field is present */
-    bool data_count_present_;
-    /*! \brief whether sum_hess_ field is present */
-    bool sum_hess_present_;
-    /*! \brief whether gain_present_ field is present */
-    bool gain_present_;
-    /* \brief whether the list given by MatchingCategories(nid) is associated with the right child
-     *        node or the left child node. True if the right child, False otherwise */
-    bool categories_list_right_child_;
-
-    /** Getters **/
-    inline int LeftChild() const {
-      return cleft_;
-    }
-    inline int RightChild() const {
-      return cright_;
-    }
-    inline bool DefaultLeft() const {
-      // Extract the most significant bit (MSB) of sindex_, which encodes the default_left field
-      return (sindex_ >> 31U) != 0;
-    }
-    inline int DefaultChild() const {
-      // Extract the most significant bit (MSB) of sindex_, which encodes the default_left field
-      return ((sindex_ >> 31U) != 0) ? cleft_ : cright_;
-    }
-    inline std::uint32_t SplitIndex() const {
-      // Extract all bits except the most significant bit (MSB) from sindex_.
-      return (sindex_ & ((1U << 31U) - 1U));
-    }
-    inline bool IsLeaf() const {
-      return cleft_ == -1;
-    }
-    inline LeafOutputType LeafValue() const {
-      return info_.leaf_value;
-    }
-    inline ThresholdType Threshold() const {
-      return info_.threshold;
-    }
-    inline Operator ComparisonOp() const {
-      return cmp_;
-    }
-    inline TreeNodeType NodeType() const {
-      return node_type_;
-    }
-    inline bool HasDataCount() const {
-      return data_count_present_;
-    }
-    inline std::uint64_t DataCount() const {
-      return data_count_;
-    }
-    inline bool HasSumHess() const {
-      return sum_hess_present_;
-    }
-    inline double SumHess() const {
-      return sum_hess_;
-    }
-    inline bool HasGain() const {
-      return gain_present_;
-    }
-    inline double Gain() const {
-      return gain_;
-    }
-    inline bool CategoriesListRightChild() const {
-      return categories_list_right_child_;
-    }
-  };
-
-  static_assert(std::is_pod<Node>::value, "Node must be a POD type");
   static_assert(
-      std::is_same<ThresholdType, float>::value || std::is_same<ThresholdType, double>::value,
-  "ThresholdType must be either float32 or float64");
-  static_assert(std::is_same<LeafOutputType, uint32_t>::value
-  || std::is_same<LeafOutputType, float>::value
-  || std::is_same<LeafOutputType, double>::value,
-  "LeafOutputType must be one of uint32_t, float32 or float64");
-  static_assert(std::is_same<ThresholdType, LeafOutputType>::value
-  || std::is_same<LeafOutputType, uint32_t>::value,
-  "Unsupported combination of ThresholdType and LeafOutputType");
-  static_assert((std::is_same<ThresholdType, float>::value && sizeof(Node) == 48)
-  || (std::is_same<ThresholdType, double>::value && sizeof(Node) == 56),
-  "Node size incorrect");
+      std::is_same_v<ThresholdType, float> || std::is_same_v<ThresholdType, double>,
+      "ThresholdType must be either float32 or float64");
+  static_assert(std::is_same_v<LeafOutputType, float> || std::is_same_v<LeafOutputType, double>,
+      "LeafOutputType must be one of uint32_t, float32 or float64");
+  static_assert(std::is_same_v<ThresholdType, LeafOutputType>,
+      "Unsupported combination of ThresholdType and LeafOutputType");
 
   Tree() = default;
   ~Tree() = default;
@@ -259,27 +85,42 @@ class Tree {
   inline Tree<ThresholdType, LeafOutputType> Clone() const;
 
  private:
-  // vector of nodes
-  ContiguousArray<Node> nodes_;
+  ContiguousArray<TreeNodeType> node_type_;
+  ContiguousArray<std::int32_t> cleft_;
+  ContiguousArray<std::int32_t> cright_;
+  ContiguousArray<std::int32_t> split_index_;
+  ContiguousArray<bool> default_left_;
+  ContiguousArray<LeafOutputType> leaf_value_;
+  ContiguousArray<ThresholdType> threshold_;
+  ContiguousArray<Operator> cmp_;
+  ContiguousArray<bool> category_list_right_child_;
+
+  // Leaf vector
   ContiguousArray<LeafOutputType> leaf_vector_;
-  // Map nid to the start and end index in leaf_vector_
-  // We could use std::pair, but it is not POD, so easier to use two vectors
-  // here
-  ContiguousArray<std::size_t> leaf_vector_begin_;
-  ContiguousArray<std::size_t> leaf_vector_end_;
-  ContiguousArray<std::uint32_t> matching_categories_;
-  ContiguousArray<std::size_t> matching_categories_offset_;
+  ContiguousArray<std::uint64_t> leaf_vector_begin_;
+  ContiguousArray<std::uint64_t> leaf_vector_end_;
+
+  // Category list
+  ContiguousArray<std::uint32_t> category_list_;
+  ContiguousArray<std::uint64_t> category_list_begin_;
+  ContiguousArray<std::uint64_t> category_list_end_;
+
+  // Node statistics
+  ContiguousArray<std::uint64_t> data_count_;
+  ContiguousArray<double> sum_hess_;
+  ContiguousArray<double> gain_;
+  ContiguousArray<bool> data_count_present_;
+  ContiguousArray<bool> sum_hess_present_;
+  ContiguousArray<bool> gain_present_;
+
   bool has_categorical_split_{false};
 
   /* Note: the following member fields shall be re-computed at serialization time */
-  // Whether to use optional fields
-  bool use_opt_field_{false};
-  // Number of optional fields in the extension slots
-  int32_t num_opt_field_per_tree_{0};
-  int32_t num_opt_field_per_node_{0};
 
-  template <typename WriterType, typename X, typename Y>
-  friend void DumpModelAsJSON(WriterType& writer, ModelImpl<X, Y> const& model);
+  // Number of optional fields in the extension slots
+  std::int32_t num_opt_field_per_tree_{0};
+  std::int32_t num_opt_field_per_node_{0};
+
   template <typename WriterType, typename X, typename Y>
   friend void DumpTreeAsJSON(WriterType& writer, Tree<X, Y> const& tree);
 
@@ -291,11 +132,9 @@ class Tree {
   // allocate a new node
   inline int AllocNode();
 
-  friend class GTILBridge;  // bridge to enable optimized access to nodes from GTIL
-
  public:
   /*! \brief number of nodes */
-  int num_nodes{0};
+  std::int32_t num_nodes{0};
   /*! \brief initialize the model with a single root node */
   inline void Init();
   /*!
@@ -546,70 +385,6 @@ class Tree {
   }
 };
 
-struct ModelParam {
-  /*!
-   * \defgroup model_param Extra parameters for tree ensemble models
-   * \{
-   */
-  /*!
-   * \brief name of prediction transform function
-   *
-   * This parameter specifies how to transform raw margin values into
-   * final predictions. By default, this is set to `'identity'`, which
-   * means no transformation.
-   *
-   * For the **multi-class classification task**, `pred_transfrom` must be one
-   * of the following values:
-   * \snippet src/compiler/pred_transform.cc pred_transform_multiclass_db
-   *
-   * For **all other tasks** (e.g. regression, binary classification, ranking
-   * etc.), `pred_transfrom` must be one of the following values:
-   * \snippet src/compiler/pred_transform.cc pred_transform_db
-   *
-   */
-  char pred_transform[TREELITE_MAX_PRED_TRANSFORM_LENGTH] = {0};
-  /*!
-   * \brief scaling parameter for sigmoid function
-   * `sigmoid(x) = 1 / (1 + exp(-alpha * x))`
-   *
-   * This parameter is used only when `pred_transform` is set to `'sigmoid'`.
-   * It must be strictly positive; if unspecified, it is set to 1.0.
-   */
-  float sigmoid_alpha;
-  /*!
-   * \brief scaling parameter for exponential standard ratio transformation
-   * `expstdratio(x) = exp2(-x / c)`
-   *
-   * This parameter is used only when `pred_transform` is set to `'exponential_standard_ratio'`.
-   * If unspecified, it is set to 1.0.
-   */
-  float ratio_c;
-  /*!
-   * \brief global bias of the model
-   *
-   * Predicted margin scores of all instances will be adjusted by the global
-   * bias. If unspecified, the bias is set to zero.
-   */
-  float global_bias;
-  /*! \} */
-
-  ModelParam() : sigmoid_alpha(1.0f), ratio_c(1.0f), global_bias(0.0f) {
-    std::memset(pred_transform, 0, TREELITE_MAX_PRED_TRANSFORM_LENGTH * sizeof(char));
-    std::strncpy(pred_transform, "identity", sizeof(pred_transform));
-  }
-  ~ModelParam() = default;
-  ModelParam(ModelParam const&) = default;
-  ModelParam& operator=(ModelParam const&) = default;
-  ModelParam(ModelParam&&) = default;
-  ModelParam& operator=(ModelParam&&) = default;
-};
-
-static_assert(
-    std::is_standard_layout<ModelParam>::value, "ModelParam must be in the standard layout");
-
-inline void InitParamAndCheck(
-    ModelParam* param, std::vector<std::pair<std::string, std::string>> const& cfg);
-
 /*! \brief Typed portion of the model class */
 template <typename ThresholdType, typename LeafOutputType>
 class ModelPreset {
@@ -732,10 +507,20 @@ class Model {
   TaskType task_type;
   /*! \brief whether to average tree outputs */
   bool average_tree_output{false};
-  /*! \brief Group of parameters that are specific to the particular task type */
-  TaskParam task_param{};
-  /*! \brief extra parameters */
-  ModelParam param{};
+
+  /* Task parameters */
+  std::uint32_t num_target;
+  ContiguousArray<std::uint32_t> num_class;
+  ContiguousArray<std::uint32_t> leaf_vector_shape;
+  /* Per-tree metadata */
+  ContiguousArray<std::int32_t> target_id;
+  ContiguousArray<std::int32_t> class_id;
+  /* Other model parameters */
+  ContiguousArray<char> pred_transform;
+  float sigmoid_alpha;
+  float ratio_c;
+  ContiguousArray<double> base_scores;
+  ContiguousArray<char> attributes;
 
  private:
   /* Note: the following member fields shall be re-computed at serialization time */
