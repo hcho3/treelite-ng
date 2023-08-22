@@ -21,6 +21,8 @@ class ContiguousArray {
   // NOTE: use Clone to make deep copy; copy constructors disabled
   ContiguousArray(ContiguousArray const&) = delete;
   ContiguousArray& operator=(ContiguousArray const&) = delete;
+  ContiguousArray(std::vector<T> const& other);
+  ContiguousArray& operator=(std::vector<T> const& other);
   ContiguousArray(ContiguousArray&& other) noexcept;
   ContiguousArray& operator=(ContiguousArray&& other) noexcept;
   inline ContiguousArray Clone() const;

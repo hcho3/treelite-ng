@@ -38,6 +38,7 @@ target_sources(objtreelite
     src/enum/tree_node_type.cc
     src/enum/typeinfo.cc
     src/frontend/xgboost.cc
+    src/frontend/detail/common.h
     src/frontend/detail/xgboost.h
     src/frontend/detail/xgboost.cc
 )

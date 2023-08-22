@@ -11,26 +11,23 @@
 #include <string>
 #include <vector>
 
-namespace treelite {
-
-namespace details::xgboost {
+namespace treelite::frontend::details::xgboost {
 
 struct ProbToMargin {
-  static float Sigmoid(float global_bias) {
-    return -std::log(1.0f / global_bias - 1.0f);
+  static double Sigmoid(double base_score) {
+    return -std::log(1.0 / base_score - 1.0);
   }
-  static float Exponential(float global_bias) {
-    return std::log(global_bias);
+  static double Exponential(double base_score) {
+    return std::log(base_score);
   }
 };
 
-// set correct prediction transform function, depending on objective function
-void SetPredTransform(std::string const& objective_name, ModelParam* param);
+// Get correct prediction transform function, depending on objective function
+std::string GetPredTransform(std::string const& objective_name);
 
-// Transform the global bias parameter from probability into margin score
-void TransformGlobalBiasToMargin(ModelParam* param);
+// Transform base score from probability into margin score
+double TransformBaseScoreToMargin(std::string const& pred_transform, double base_score);
 
-}  // namespace details::xgboost
-}  // namespace treelite
+}  // namespace treelite::frontend::details::xgboost
 
 #endif  // SRC_FRONTEND_DETAIL_XGBOOST_H_

@@ -54,8 +54,6 @@ class Deserializer;
 
 namespace treelite {
 
-class GTILBridge;
-
 // Used for returning version triple from a Model object
 struct Version {
   std::int32_t major_ver;
@@ -129,69 +127,69 @@ class Tree {
   template <typename MixIn>
   friend class detail::serializer::Deserializer;
 
-  // allocate a new node
+  // Allocate a new node, return the new node's ID
   inline int AllocNode();
 
  public:
-  /*! \brief number of nodes */
+  /*! \brief Number of nodes */
   std::int32_t num_nodes{0};
-  /*! \brief initialize the model with a single root node */
+  /*! \brief Initialize the model with a single root node */
   inline void Init();
   /*!
-   * \brief add child nodes to node
+   * \brief Add child nodes to node
    * \param nid node id to add children to
    */
   inline void AddChilds(int nid);
 
   /** Getters **/
   /*!
-   * \brief index of the node's left child
+   * \brief Index of the node's left child
    * \param nid ID of node being queried
    */
   inline int LeftChild(int nid) const {
-    return nodes_[nid].LeftChild();
+    return cleft_[nid];
   }
   /*!
-   * \brief index of the node's right child
+   * \brief Index of the node's right child
    * \param nid ID of node being queried
    */
   inline int RightChild(int nid) const {
-    return nodes_[nid].RightChild();
+    return cright_[nid];
   }
   /*!
-   * \brief index of the node's "default" child, used when feature is missing
+   * \brief Index of the node's "default" child, used when feature is missing
    * \param nid ID of node being queried
    */
   inline int DefaultChild(int nid) const {
-    return nodes_[nid].DefaultChild();
+    return default_left_[nid] ? cleft_[nid] : cright_[nid];
   }
   /*!
-   * \brief feature index of the node's split condition
+   * \brief Feature index of the node's split condition
    * \param nid ID of node being queried
    */
   inline std::uint32_t SplitIndex(int nid) const {
-    return nodes_[nid].SplitIndex();
+    return split_index_[nid];
   }
   /*!
-   * \brief whether to use the left child node, when the feature in the split condition is missing
+   * \brief Whether to use the left child node, when the feature in the split condition is missing
    * \param nid ID of node being queried
    */
   inline bool DefaultLeft(int nid) const {
-    return nodes_[nid].DefaultLeft();
+    return default_left_[nid];
   }
   /*!
-   * \brief whether the node is leaf node
+   * \brief Whether the node is leaf node
    * \param nid ID of node being queried
    */
   inline bool IsLeaf(int nid) const {
-    return nodes_[nid].IsLeaf();
+    return cleft_[nid] == -1;
   }
   /*!
-   * \brief get leaf value of the leaf node
+   * \brief Get leaf value of the leaf node
    * \param nid ID of node being queried
    */
   inline LeafOutputType LeafValue(int nid) const {
-    return nodes_[nid].LeafValue();
+    return leaf_value_[nid];
   }
   /*!
    * \brief get leaf vector of the leaf node; useful for multi-class random forest classifier
@@ -216,36 +214,37 @@ class Tree {
     return leaf_vector_begin_[nid] != leaf_vector_end_[nid];
   }
   /*!
-   * \brief get threshold of the node
+   * \brief Get threshold of the node
    * \param nid ID of node being queried
    */
   inline ThresholdType Threshold(int nid) const {
-    return nodes_[nid].Threshold();
+    return threshold_[nid];
   }
   /*!
-   * \brief get comparison operator
+   * \brief Get comparison operator
    * \param nid ID of node being queried
    */
   inline Operator ComparisonOp(int nid) const {
-    return nodes_[nid].ComparisonOp();
+    return cmp_[nid];
   }
   /*!
-   * \brief Get list of all categories belonging to the left/right child node. See the
-   *        categories_list_right_child_ field of each split to determine whether this list
+   * \brief Get list of all categories belonging to the left/right child node.
+   * See the category_list_right_child_ field of each test node to determine whether this list
    * represents the right child node or the left child node. Categories are integers ranging from 0
    * to (n-1), where n is the number of categories in that particular feature. This list is assumed
-   * to be in ascending order. \param nid ID of node being queried
+   * to be in ascending order.
+   *
+   * \param nid ID of node being queried
    */
-  inline std::vector<std::uint32_t> MatchingCategories(int nid) const {
-    const std::size_t offset_begin = matching_categories_offset_[nid];
-    const std::size_t offset_end = matching_categories_offset_[nid + 1];
-    if (offset_begin >= matching_categories_.Size() || offset_end > matching_categories_.Size()) {
-      // Return empty vector, to indicate the lack of any matching categories
+  inline std::vector<std::uint32_t> CategoryList(int nid) const {
+    const std::size_t offset_begin = category_list_begin_[nid];
+    const std::size_t offset_end = category_list_end_[nid];
+    if (offset_begin >= category_list_.Size() || offset_end > category_list_.Size()) {
+      // Return empty vector, to indicate the lack of any category list
       // The node might be a numerical split
-      return std::vector<std::uint32_t>();
+      return {};
     }
-    return std::vector<std::uint32_t>(
-        &matching_categories_[offset_begin], &matching_categories_[offset_end]);
+    return {&category_list_[offset_begin], &category_list_[offset_end]};
     // Use unsafe access here, since we may need to take the address of one past the last
     // element, to follow with the range semantic of std::vector<>.
   }
@@ -254,58 +253,58 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline TreeNodeType NodeType(int nid) const {
-    return nodes_[nid].NodeType();
+    return node_type_[nid];
   }
   /*!
-   * \brief test whether this node has data count
+   * \brief Test whether this node has data count
    * \param nid ID of node being queried
    */
   inline bool HasDataCount(int nid) const {
-    return nodes_[nid].HasDataCount();
+    return !data_count_present_.Empty() && data_count_present_[nid];
   }
   /*!
-   * \brief get data count
+   * \brief Get data count
    * \param nid ID of node being queried
    */
   inline std::uint64_t DataCount(int nid) const {
-    return nodes_[nid].DataCount();
+    return data_count_[nid];
   }
 
   /*!
-   * \brief test whether this node has hessian sum
+   * \brief Test whether this node has hessian sum
    * \param nid ID of node being queried
    */
   inline bool HasSumHess(int nid) const {
-    return nodes_[nid].HasSumHess();
+    return !sum_hess_present_.Empty() && sum_hess_present_[nid];
   }
   /*!
-   * \brief get hessian sum
+   * \brief Get hessian sum
    * \param nid ID of node being queried
    */
   inline double SumHess(int nid) const {
-    return nodes_[nid].SumHess();
+    return sum_hess_[nid];
   }
   /*!
-   * \brief test whether this node has gain value
+   * \brief Test whether this node has gain value
    * \param nid ID of node being queried
    */
   inline bool HasGain(int nid) const {
-    return nodes_[nid].HasGain();
+    return !gain_present_.Empty() && gain_present_[nid];
   }
   /*!
-   * \brief get gain value
+   * \brief Get gain value
    * \param nid ID of node being queried
    */
   inline double Gain(int nid) const {
-    return nodes_[nid].Gain();
+    return gain_[nid];
   }
   /*!
-   * \brief test whether the list given by MatchingCategories(nid) is associated with the right
+   * \brief Test whether the list given by CategoryList(nid) is associated with the right
    *        child node or the left child node
    * \param nid ID of node being queried
    */
-  inline bool CategoriesListRightChild(int nid) const {
-    return nodes_[nid].CategoriesListRightChild();
+  inline bool CategoryListRightChild(int nid) const {
+    return category_list_right_child_[nid];
   }
 
   /*!
@@ -317,7 +316,7 @@ class Tree {
 
   /** Setters **/
   /*!
-   * \brief create a numerical split
+   * \brief Create a numerical split
    * \param nid ID of node being updated
    * \param split_index feature index to split
    * \param threshold threshold value
@@ -326,63 +325,52 @@ class Tree {
    *            threshold
    */
   inline void SetNumericalSplit(
-      int nid, unsigned split_index, ThresholdType threshold, bool default_left, Operator cmp);
+      int nid, std::int32_t split_index, ThresholdType threshold, bool default_left, Operator cmp);
   /*!
-   * \brief create a categorical split
+   * \brief Create a categorical split
    * \param nid ID of node being updated
    * \param split_index feature index to split
    * \param default_left the default direction when feature is unknown
-   * \param categories_list list of categories to belong to either the right child node or the left
-   *                        child node. Set categories_list_right_child parameter to indicate
-   *                        which node the category list should represent.
-   * \param categories_list_right_child whether categories_list indicates the list of categories
-   *                                    for the right child node (true) or the left child node
-   *                                    (false)
+   * \param category_list list of categories to belong to either the right child node or the left
+   *                      child node. Set categories_list_right_child parameter to indicate
+   *                      which node the category list should represent.
+   * \param category_list_right_child whether categories_list indicates the list of categories
+   *                                  for the right child node (true) or the left child node
+   *                                  (false)
    */
-  inline void SetCategoricalSplit(int nid, unsigned split_index, bool default_left,
-                                  std::vector<uint32_t> const& categories_list, bool categories_list_right_child);
+  inline void SetCategoricalSplit(int nid, std::int32_t split_index, bool default_left,
+                                  std::vector<std::uint32_t> const& category_list,
+                                  bool category_list_right_child);
   /*!
-   * \brief set the leaf value of the node
+   * \brief Set the leaf value of the node
    * \param nid ID of node being updated
    * \param value leaf value
    */
   inline void SetLeaf(int nid, LeafOutputType value);
   /*!
-   * \brief set the leaf vector of the node; useful for multi-class random forest classifier
+   * \brief Set the leaf vector of the node; useful for multi-class random forest classifier
    * \param nid ID of node being updated
    * \param leaf_vector leaf vector
    */
   inline void SetLeafVector(int nid, std::vector<LeafOutputType> const& leaf_vector);
   /*!
-   * \brief set the hessian sum of the node
+   * \brief Set the hessian sum of the node
    * \param nid ID of node being updated
    * \param sum_hess hessian sum
    */
-  inline void SetSumHess(int nid, double sum_hess) {
-    Node& node = nodes_.at(nid);
-    node.sum_hess_ = sum_hess;
-    node.sum_hess_present_ = true;
-  }
+  inline void SetSumHess(int nid, double sum_hess);
   /*!
-   * \brief set the data count of the node
+   * \brief Set the data count of the node
    * \param nid ID of node being updated
    * \param data_count data count
    */
-  inline void SetDataCount(int nid, uint64_t data_count) {
-    Node& node = nodes_.at(nid);
-    node.data_count_ = data_count;
-    node.data_count_present_ = true;
-  }
+  inline void SetDataCount(int nid, std::uint64_t data_count);
   /*!
-   * \brief set the gain value of the node
+   * \brief Set the gain value of the node
    * \param nid ID of node being updated
    * \param gain gain value
    */
-  inline void SetGain(int nid, double gain) {
-    Node& node = nodes_.at(nid);
-    node.gain_ = gain;
-    node.gain_present_ = true;
-  }
+  inline void SetGain(int nid, double gain);
 };
 
 /*! \brief Typed portion of the model class */
@@ -418,8 +406,7 @@ class ModelPreset {
 };
 
 using ModelPresetVariant
-    = std::variant<ModelPreset<float, float>, ModelPreset<float, std::uint32_t>,
-    ModelPreset<double, double>, ModelPreset<double, std::uint32_t>>;
+    = std::variant<ModelPreset<float, float>, ModelPreset<double, double>>;
 
 template <int variant_index>
 ModelPresetVariant SetModelPresetVariant(int target_variant_index) {
@@ -516,11 +503,11 @@ class Model {
   ContiguousArray<std::int32_t> target_id;
   ContiguousArray<std::int32_t> class_id;
   /* Other model parameters */
-  ContiguousArray<char> pred_transform;
+  std::string pred_transform;
   float sigmoid_alpha;
   float ratio_c;
   ContiguousArray<double> base_scores;
-  ContiguousArray<char> attributes;
+  std::string attributes;
 
  private:
   /* Note: the following member fields shall be re-computed at serialization time */

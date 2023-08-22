@@ -6,6 +6,7 @@
  */
 
 #include "./detail/xgboost.h"
+#include "./detail/common.h"
 
 #include <treelite/frontend.h>
 #include <treelite/logging.h>
@@ -47,6 +48,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(void const* buf, std::size_t l
 namespace {
 
 using bst_float = float;
+using treelite::frontend::details::StringStartsWith;
 
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
@@ -393,11 +395,11 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     // In XGBoost 1.6, num_roots is used as num_parallel_tree, so don't check
     TREELITE_CHECK_EQ(gbm_param_.num_roots, 1) << "multi-root trees not supported";
   }
-  std::vector<int> tree_info;
+  std::vector<std::int32_t> tree_info;
   tree_info.resize(gbm_param_.num_trees);
   if (gbm_param_.num_trees > 0) {
-    TREELITE_CHECK_EQ(fp->Read(tree_info.data(), sizeof(int32_t) * tree_info.size()),
-                      sizeof(int32_t) * tree_info.size());
+    TREELITE_CHECK_EQ(fp->Read(tree_info.data(), sizeof(std::int32_t) * tree_info.size()),
+                      sizeof(std::int32_t) * tree_info.size());
   }
   // Load weight drop values (per tree) for dart models.
   std::vector<bst_float> weight_drop;
@@ -417,33 +419,51 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   std::unique_ptr<treelite::Model> model = treelite::Model::Create<float, float>();
   model->num_feature = static_cast<int>(mparam_.num_feature);
   model->average_tree_output = false;
-  int const num_class = std::max(mparam_.num_class, 1);
+
+  // XGBoost binary format only supports a single target
+  model->num_target = 1;
+  std::int32_t const num_class = std::max(mparam_.num_class, static_cast<std::int32_t>(1));
+  model->num_class = std::vector<std::uint32_t>{static_cast<std::uint32_t>(num_class)};
+  model->leaf_vector_shape = std::vector<std::uint32_t>{1, 1};
+  std::int32_t const num_tree = gbm_param_.num_trees;
+  model->target_id = std::vector<std::int32_t>(num_tree, 0);
+
   if (num_class > 1) {
-    // multi-class classifier
-    model->task_type = treelite::TaskType::kMultiClfGrovePerClass;
-    model->task_param.grove_per_class = true;
+    // multi-class classifier with grove per class
+    model->task_type = treelite::TaskType::kMultiClf;
+    for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+      model->class_id[tree_id] = tree_id % num_class;
+    }
   } else {
     // binary classifier or regressor
-    model->task_type = treelite::TaskType::kBinaryClfRegr;
-    model->task_param.grove_per_class = false;
+    if (StringStartsWith(name_obj_, "binary:")) {
+      model->task_type = treelite::TaskType::kBinaryClf;
+    } else if (StringStartsWith(name_obj_, "rank:")) {
+      model->task_type = treelite::TaskType::kLearningToRank;
+    } else {
+      model->task_type = treelite::TaskType::kRegressor;
+    }
+    model->class_id = std::vector<std::int32_t>(num_tree, 0);
   }
-  model->task_param.output_type = treelite::TaskParam::OutputType::kFloat;
-  model->task_param.num_class = num_class;
-  model->task_param.leaf_vector_size = 1;
 
-  // set correct prediction transform function, depending on objective function
-  treelite::details::xgboost::SetPredTransform(name_obj_, &model->param);
+  // Set correct prediction transform function, depending on objective function
+  model->pred_transform = treelite::frontend::details::xgboost::GetPredTransform(name_obj_);
+  if (model->pred_transform == "sigmoid") {
+    model->sigmoid_alpha = 1.0f;
+  }
 
-  // set global bias
-  model->param.global_bias = static_cast<float>(mparam_.base_score);
+  // Set base scores. For now, XGBoost only supports a scalar base score for all targets / classes.
+  auto base_score = static_cast<double>(mparam_.base_score);
   // Before XGBoost 1.0.0, the global bias saved in model is a transformed value.  After
   // 1.0 it's the original value provided by user.
   bool const need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
-    treelite::details::xgboost::TransformGlobalBiasToMargin(&model->param);
+    base_score = treelite::frontend::details::xgboost::TransformBaseScoreToMargin(
+        model->pred_transform, base_score);
   }
+  model->base_scores = std::vector<double>(num_class, base_score);
 
-  // traverse trees
+  // Traverse trees
   auto& trees = std::get<treelite::ModelPreset<float, float>>(model->variant_).trees;
   for (auto const& xgb_tree : xgb_trees_) {
     trees.emplace_back();
@@ -500,7 +520,6 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       // We need to re-order them as follows:
       // 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
       std::vector<treelite::Tree<float, float>> new_trees;
-      std::size_t num_tree = trees.size();
       for (std::size_t c = 0; c < num_parallel_tree; ++c) {
         for (std::size_t tree_id = c; tree_id < num_tree; tree_id += num_parallel_tree) {
           new_trees.push_back(std::move(trees[tree_id]));
