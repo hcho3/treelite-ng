@@ -12,7 +12,7 @@
 
 namespace treelite {
 
-inline std::string TaskTypeToString(TaskType type) {
+std::string TaskTypeToString(TaskType type) {
   switch (type) {
   case TaskType::kBinaryClf:
     return "kBinaryClf";
@@ -29,7 +29,7 @@ inline std::string TaskTypeToString(TaskType type) {
   }
 }
 
-inline TaskType TaskTypeFromString(std::string const& str) {
+TaskType TaskTypeFromString(std::string const& str) {
   if (str == "kBinaryClf") {
     return TaskType::kBinaryClf;
   } else if (str == "kRegressor") {

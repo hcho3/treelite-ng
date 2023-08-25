@@ -14,6 +14,10 @@ else()
   message(STATUS "No Conda environment detected")
 endif()
 
+include(cmake/ExternalLibs.cmake)
+include(cmake/Version.cmake)
+write_version()
+
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
 
@@ -33,20 +37,22 @@ target_sources(objtreelite
     include/treelite/enum/task_type.h
     include/treelite/enum/tree_node_type.h
     include/treelite/enum/typeinfo.h
+    src/json_serializer.cc
     src/enum/operator.cc
     src/enum/task_type.cc
     src/enum/tree_node_type.cc
     src/enum/typeinfo.cc
     src/frontend/xgboost.cc
     src/frontend/detail/common.h
-    src/frontend/detail/xgboost.h
     src/frontend/detail/xgboost.cc
+    src/frontend/detail/xgboost.h
 )
 set_target_properties(objtreelite
     PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson)
 target_compile_features(objtreelite PUBLIC cxx_std_17)
 target_include_directories(objtreelite PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
@@ -62,9 +68,6 @@ target_sources(_ext
     python/pybind11/frontend.cc
 )
 target_link_libraries(_ext PRIVATE pybind11::headers objtreelite)
-
-include(cmake/Version.cmake)
-write_version()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
