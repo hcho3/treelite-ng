@@ -5,8 +5,8 @@
  * \author Hyunsu Cho
  */
 
-#ifndef TREELITE_OPERATOR_H_
-#define TREELITE_OPERATOR_H_
+#ifndef TREELITE_ENUM_OPERATOR_H_
+#define TREELITE_ENUM_OPERATOR_H_
 
 #include <cstdint>
 #include <string>
@@ -31,4 +31,4 @@ Operator OperatorFromString(std::string const& name);
 
 }  // namespace treelite
 
-#endif  // TREELITE_OPERATOR_H_
+#endif  // TREELITE_ENUM_OPERATOR_H_

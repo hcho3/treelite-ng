@@ -12,7 +12,7 @@
 
 namespace treelite::frontend::details {
 
-inline bool StringStartsWith(const std::string& str, const std::string& prefix) {
+inline bool StringStartsWith(std::string const& str, std::string const& prefix) {
   return str.rfind(prefix, 0) == 0;
 }
 

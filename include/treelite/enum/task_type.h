@@ -5,8 +5,8 @@
  * \author Hyunsu Cho
  */
 
-#ifndef TREELITE_TASK_TYPE_H_
-#define TREELITE_TASK_TYPE_H_
+#ifndef TREELITE_ENUM_TASK_TYPE_H_
+#define TREELITE_ENUM_TASK_TYPE_H_
 
 #include <cstdint>
 #include <string>
@@ -32,4 +32,4 @@ TaskType TaskTypeFromString(std::string const& str);
 
 }  // namespace treelite
 
-#endif  // TREELITE_TASK_TYPE_H_
+#endif  // TREELITE_ENUM_TASK_TYPE_H_

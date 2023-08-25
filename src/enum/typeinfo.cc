@@ -5,8 +5,8 @@
  * \brief Utilities for TypeInfo enum
  */
 
-#include <treelite/logging.h>
 #include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
 
 #include <string>
 

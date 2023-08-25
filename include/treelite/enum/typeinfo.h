@@ -5,11 +5,13 @@
  * \author Hyunsu Cho
  */
 
-#ifndef TREELITE_TYPEINFO_H_
-#define TREELITE_TYPEINFO_H_
+#ifndef TREELITE_ENUM_TYPEINFO_H_
+#define TREELITE_ENUM_TYPEINFO_H_
 
 #include <treelite/logging.h>
+
 #include <cstdint>
+#include <string>
 #include <typeinfo>
 
 namespace treelite {
@@ -44,4 +46,4 @@ inline TypeInfo TypeInfoFromType() {
 
 }  // namespace treelite
 
-#endif  // TREELITE_TYPEINFO_H_
+#endif  // TREELITE_ENUM_TYPEINFO_H_

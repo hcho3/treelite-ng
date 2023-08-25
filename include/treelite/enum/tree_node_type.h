@@ -5,16 +5,19 @@
  * \author Hyunsu Cho
  */
 
-#ifndef TREELITE_TREE_NODE_TYPE_H_
-#define TREELITE_TREE_NODE_TYPE_H_
+#ifndef TREELITE_ENUM_TREE_NODE_TYPE_H_
+#define TREELITE_ENUM_TREE_NODE_TYPE_H_
 
 #include <cstdint>
+#include <string>
 
 namespace treelite {
 
 /*! \brief Tree node type */
 enum class TreeNodeType : std::int8_t {
-  kLeafNode = 0, kNumericalTestNode = 1, kCategoricalTestNode = 2
+  kLeafNode = 0,
+  kNumericalTestNode = 1,
+  kCategoricalTestNode = 2
 };
 
 /*! \brief Get string representation of TreeNodeType */
@@ -25,4 +28,4 @@ TreeNodeType TreeNodeTypeFromString(std::string const& name);
 
 }  // namespace treelite
 
-#endif  // TREELITE_TREE_NODE_TYPE_H_
+#endif  // TREELITE_ENUM_TREE_NODE_TYPE_H_

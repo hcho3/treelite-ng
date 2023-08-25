@@ -137,9 +137,9 @@ inline void Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(
-    int nid, std::int32_t split_index, bool default_left,
-    std::vector<std::uint32_t> const& category_list, bool category_list_right_child) {
+inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(int nid,
+    std::int32_t split_index, bool default_left, std::vector<std::uint32_t> const& category_list,
+    bool category_list_right_child) {
   TREELITE_CHECK(!CategoryList().empty()) << "Cannot set leaf vector twice for same node";
 
   const std::size_t begin = category_list_.Size();
@@ -181,8 +181,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetLeafVector(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::SetSumHess(
-    int nid, double sum_hess) {
+inline void Tree<ThresholdType, LeafOutputType>::SetSumHess(int nid, double sum_hess) {
   if (sum_hess_present_.Empty()) {
     sum_hess_present_.Resize(num_nodes);
     sum_hess_.Resize(num_nodes);
@@ -192,8 +191,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetSumHess(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::SetDataCount(
-    int nid, std::uint64_t data_count) {
+inline void Tree<ThresholdType, LeafOutputType>::SetDataCount(int nid, std::uint64_t data_count) {
   if (data_count_present_.Empty()) {
     data_count_present_.Resize(num_nodes);
     data_count_.Resize(num_nodes);
@@ -203,8 +201,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetDataCount(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::SetGain(
-    int nid, double gain) {
+inline void Tree<ThresholdType, LeafOutputType>::SetGain(int nid, double gain) {
   if (gain_present_.Empty()) {
     gain_present_.Resize(num_nodes);
     gain_.Resize(num_nodes);

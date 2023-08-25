@@ -8,12 +8,12 @@
 #define TREELITE_TREE_H_
 
 #include <treelite/contiguous_array.h>
-#include <treelite/logging.h>
-#include <treelite/pybuffer_frame.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/tree_node_type.h>
 #include <treelite/enum/typeinfo.h>
+#include <treelite/logging.h>
+#include <treelite/pybuffer_frame.h>
 #include <treelite/version.h>
 
 #include <algorithm>
@@ -65,8 +65,7 @@ struct Version {
 template <typename ThresholdType, typename LeafOutputType>
 class Tree {
  public:
-  static_assert(
-      std::is_same_v<ThresholdType, float> || std::is_same_v<ThresholdType, double>,
+  static_assert(std::is_same_v<ThresholdType, float> || std::is_same_v<ThresholdType, double>,
       "ThresholdType must be either float32 or float64");
   static_assert(std::is_same_v<LeafOutputType, float> || std::is_same_v<LeafOutputType, double>,
       "LeafOutputType must be one of uint32_t, float32 or float64");
@@ -339,8 +338,7 @@ class Tree {
    *                                  (false)
    */
   inline void SetCategoricalSplit(int nid, std::int32_t split_index, bool default_left,
-                                  std::vector<std::uint32_t> const& category_list,
-                                  bool category_list_right_child);
+      std::vector<std::uint32_t> const& category_list, bool category_list_right_child);
   /*!
    * \brief Set the leaf value of the node
    * \param nid ID of node being updated
@@ -405,8 +403,7 @@ class ModelPreset {
   }
 };
 
-using ModelPresetVariant
-    = std::variant<ModelPreset<float, float>, ModelPreset<double, double>>;
+using ModelPresetVariant = std::variant<ModelPreset<float, float>, ModelPreset<double, double>>;
 
 template <int variant_index>
 ModelPresetVariant SetModelPresetVariant(int target_variant_index) {

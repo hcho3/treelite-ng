@@ -6,7 +6,6 @@
  */
 
 #include "./detail/xgboost.h"
-#include "./detail/common.h"
 
 #include <treelite/frontend.h>
 #include <treelite/logging.h>
@@ -15,12 +14,14 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <queue>
 #include <sstream>
 #include <variant>
-#include <filesystem>
+
+#include "./detail/common.h"
 
 namespace fs = std::filesystem;
 
@@ -32,7 +33,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 namespace treelite::frontend {
 
-std::unique_ptr<treelite::Model> LoadXGBoostModel(const std::string& filename) {
+std::unique_ptr<treelite::Model> LoadXGBoostModel(std::string const& filename) {
   std::ifstream fi(fs::u8path(filename), std::ios::in | std::ios::binary);
   return ParseStream(fi);
 }
@@ -69,7 +70,7 @@ class PeekableInputStream {
       } else {
         std::memcpy(cptr, &buf_[begin_ptr_], MAX_PEEK_WINDOW + 1 - begin_ptr_);
         std::memcpy(cptr + MAX_PEEK_WINDOW + 1 - begin_ptr_, &buf_[0],
-                    size + begin_ptr_ - MAX_PEEK_WINDOW - 1);
+            size + begin_ptr_ - MAX_PEEK_WINDOW - 1);
         begin_ptr_ = size + begin_ptr_ - MAX_PEEK_WINDOW - 1;
       }
       return size;
@@ -80,7 +81,7 @@ class PeekableInputStream {
       } else {
         std::memcpy(cptr, &buf_[begin_ptr_], MAX_PEEK_WINDOW + 1 - begin_ptr_);
         std::memcpy(cptr + MAX_PEEK_WINDOW + 1 - begin_ptr_, &buf_[0],
-                    bytes_buffered + begin_ptr_ - MAX_PEEK_WINDOW - 1);
+            bytes_buffered + begin_ptr_ - MAX_PEEK_WINDOW - 1);
       }
       begin_ptr_ = end_ptr_;
       istm_.read(cptr + bytes_buffered, bytes_to_read);
@@ -230,7 +231,8 @@ class XGBTree {
       this->cleft_ = -1;
       this->cright_ = -1;
     }
-    inline void set_split(std::uint32_t split_index, bst_float split_cond, bool default_left = false) {
+    inline void set_split(
+        std::uint32_t split_index, bst_float split_cond, bool default_left = false) {
       if (default_left) {
         split_index |= (1U << 31);
       }
@@ -399,7 +401,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   tree_info.resize(gbm_param_.num_trees);
   if (gbm_param_.num_trees > 0) {
     TREELITE_CHECK_EQ(fp->Read(tree_info.data(), sizeof(std::int32_t) * tree_info.size()),
-                      sizeof(std::int32_t) * tree_info.size());
+        sizeof(std::int32_t) * tree_info.size());
   }
   // Load weight drop values (per tree) for dart models.
   std::vector<bst_float> weight_drop;
@@ -492,7 +494,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
         tree.SetNumericalSplit(new_id, node.split_index(), static_cast<float>(split_cond),
-                               node.default_left(), treelite::Operator::kLT);
+            node.default_left(), treelite::Operator::kLT);
         tree.SetGain(new_id, stat.loss_chg);
         Q.emplace(node.cleft(), tree.LeftChild(new_id));
         Q.emplace(node.cright(), tree.RightChild(new_id));

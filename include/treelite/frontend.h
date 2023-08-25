@@ -7,8 +7,9 @@
 #ifndef TREELITE_FRONTEND_H_
 #define TREELITE_FRONTEND_H_
 
-#include <memory>
 #include <cstddef>
+#include <memory>
+#include <string>
 
 namespace treelite {
 

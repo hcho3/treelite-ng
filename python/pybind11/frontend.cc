@@ -1,6 +1,12 @@
-#include <treelite/tree.h>
-#include <treelite/frontend.h>
+/*!
+ * Copyright (c) 2023 by Contributors
+ * \file frontend.cc
+ * \brief Pybind11 binding for frontend API
+ * \author Hyunsu Cho
+ */
 #include <pybind11/pybind11.h>
+#include <treelite/frontend.h>
+#include <treelite/tree.h>
 
 #include <memory>
 #include <string>
@@ -10,8 +16,7 @@ namespace py = pybind11;
 namespace treelite::pybind11 {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModel(
-    const std::string& filename, [[maybe_unused]] const std::string& config_json
-) {
+    std::string const& filename, [[maybe_unused]] std::string const& config_json) {
   // config_json is unused for now
   return frontend::LoadXGBoostModel(filename);
 }
@@ -19,7 +24,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(
 }  // namespace treelite::pybind11
 
 PYBIND11_MODULE(_ext, m) {
-m.doc() = R"pbdoc(
+  m.doc() = R"pbdoc(
         Treelite
         --------
 
@@ -32,7 +37,7 @@ m.doc() = R"pbdoc(
            subtract
     )pbdoc";
 
-m.def("add", &treelite::pybind11::LoadXGBoostModel, R"pbdoc(
+  m.def("add", &treelite::pybind11::LoadXGBoostModel, R"pbdoc(
         Add two numbers
 
         Some other explanation about the add function.

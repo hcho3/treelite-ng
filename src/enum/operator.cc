@@ -5,8 +5,8 @@
  * \brief Utilities for Operator enum
  */
 
-#include <treelite/logging.h>
 #include <treelite/enum/operator.h>
+#include <treelite/logging.h>
 
 #include <string>
 

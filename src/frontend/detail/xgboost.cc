@@ -6,8 +6,8 @@
  */
 #include "./xgboost.h"
 
-#include <treelite/tree.h>
 #include <treelite/logging.h>
+#include <treelite/tree.h>
 
 #include <string>
 #include <vector>
@@ -17,7 +17,7 @@ namespace treelite::frontend::details::xgboost {
 // set correct prediction transform function, depending on objective function
 std::string GetPredTransform(std::string const& objective_name) {
   const std::vector<std::string> exponential_objectives{
-    "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"};
+      "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"};
   if (objective_name == "multi:softmax") {
     return "max_index";
   } else if (objective_name == "multi:softprob") {
@@ -25,7 +25,7 @@ std::string GetPredTransform(std::string const& objective_name) {
   } else if (objective_name == "reg:logistic" || objective_name == "binary:logistic") {
     return "sigmoid";
   } else if (std::find(
-      exponential_objectives.cbegin(), exponential_objectives.cend(), objective_name)
+                 exponential_objectives.cbegin(), exponential_objectives.cend(), objective_name)
              != exponential_objectives.cend()) {
     return "exponential";
   } else if (objective_name == "binary:hinge") {
@@ -51,4 +51,4 @@ double TransformBaseScoreToMargin(std::string const& pred_transform, double base
   }
 }
 
-}  // treelite::frontend::details::xgboost
+}  // namespace treelite::frontend::details::xgboost

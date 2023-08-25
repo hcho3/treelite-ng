@@ -5,8 +5,8 @@
  * \brief Utilities for NodeType enum
  */
 
-#include <treelite/logging.h>
 #include <treelite/enum/tree_node_type.h>
+#include <treelite/logging.h>
 
 #include <string>
 
