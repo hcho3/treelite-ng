@@ -12,7 +12,7 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(_ext, m) {
-    m.doc() = R"pbdoc(
+  m.doc() = R"pbdoc(
         Treelite
         --------
 
@@ -25,6 +25,6 @@ PYBIND11_MODULE(_ext, m) {
            subtract
     )pbdoc";
 
-    treelite::pybind11::init_frontend(m);
-    treelite::pybind11::init_tree(m);
+  treelite::pybind11::init_frontend(m);
+  treelite::pybind11::init_tree(m);
 }

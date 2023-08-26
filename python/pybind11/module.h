@@ -13,8 +13,8 @@
 namespace py = pybind11;
 
 namespace treelite::pybind11 {
-void init_frontend(py::module &m);
-void init_tree(py::module &m);
+void init_frontend(py::module& m);
+void init_tree(py::module& m);
 }  // namespace treelite::pybind11
 
 #endif  // PYTHON_PYBIND11_MODULE_H_
