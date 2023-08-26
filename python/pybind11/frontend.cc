@@ -4,10 +4,11 @@
  * \brief Pybind11 binding for frontend API
  * \author Hyunsu Cho
  */
+#include "./module.h"
+
 #include <pybind11/pybind11.h>
 #include <treelite/frontend.h>
 #include <treelite/tree.h>
-
 #include <memory>
 #include <string>
 
@@ -21,25 +22,13 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(
   return frontend::LoadXGBoostModel(filename);
 }
 
-}  // namespace treelite::pybind11
-
-PYBIND11_MODULE(_ext, m) {
-  m.doc() = R"pbdoc(
-        Treelite
-        --------
-
-        .. currentmodule:: treelite
-
-        .. autosummary::
-           :toctree: _generate
-
-           add
-           subtract
-    )pbdoc";
-
-  m.def("add", &treelite::pybind11::LoadXGBoostModel, R"pbdoc(
+void init_frontend(py::module& m) {
+    m.def("add", &treelite::pybind11::LoadXGBoostModel, R"pbdoc(
         Add two numbers
 
         Some other explanation about the add function.
     )pbdoc");
 }
+
+}  // namespace treelite::pybind11
+

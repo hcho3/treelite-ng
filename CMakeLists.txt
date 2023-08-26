@@ -66,6 +66,9 @@ python_add_library(_ext MODULE WITH_SOABI)
 target_sources(_ext
     PRIVATE
     python/pybind11/frontend.cc
+    python/pybind11/module.cc
+    python/pybind11/module.h
+    python/pybind11/tree.cc
 )
 target_link_libraries(_ext PRIVATE pybind11::headers objtreelite)
 

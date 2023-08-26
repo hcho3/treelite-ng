@@ -6,6 +6,7 @@
  */
 
 #include "./detail/xgboost.h"
+#include "./detail/common.h"
 
 #include <treelite/frontend.h>
 #include <treelite/logging.h>
@@ -20,8 +21,6 @@
 #include <queue>
 #include <sstream>
 #include <variant>
-
-#include "./detail/common.h"
 
 namespace fs = std::filesystem;
 
