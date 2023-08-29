@@ -20,6 +20,7 @@ namespace treelite::pybind11 {
 std::unique_ptr<treelite::Model> LoadXGBoostModel(
     std::string const& filename, [[maybe_unused]] std::string const& config_json) {
   // config_json is unused for now
+  TREELITE_LOG(INFO) << "here";
   return frontend::LoadXGBoostModel(filename);
 }
 

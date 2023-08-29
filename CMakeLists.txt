@@ -38,6 +38,7 @@ target_sources(objtreelite
     include/treelite/enum/tree_node_type.h
     include/treelite/enum/typeinfo.h
     src/json_serializer.cc
+    src/logging.cc
     src/enum/operator.cc
     src/enum/task_type.cc
     src/enum/tree_node_type.cc
@@ -66,6 +67,7 @@ python_add_library(_ext MODULE WITH_SOABI)
 target_sources(_ext
     PRIVATE
     python/pybind11/frontend.cc
+    python/pybind11/logging.cc
     python/pybind11/module.cc
     python/pybind11/module.h
     python/pybind11/tree.cc
