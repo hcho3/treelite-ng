@@ -31,11 +31,6 @@
 #include <variant>
 #include <vector>
 
-#define __TREELITE_STR(x) #x
-#define _TREELITE_STR(x) __TREELITE_STR(x)
-
-#define TREELITE_MAX_PRED_TRANSFORM_LENGTH 256
-
 /* Indicator that certain functions should be visible from a library (Windows only) */
 #if defined(_MSC_VER) || defined(_WIN32)
 #define TREELITE_DLL_EXPORT __declspec(dllexport)

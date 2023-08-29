@@ -32,12 +32,8 @@ repos:
     - id: pylint
       name: pylint
       entry: python dev/run_pylint.py
-      language: python
+      language: system
       types: [python]
-      additional_dependencies: [
-        pylint, hatchling, pytest, scikit-learn, hypothesis, pandas, treelite,
-        lightgbm, xgboost, tqdm
-      ]
 - repo: https://github.com/pocc/pre-commit-hooks
   rev: v1.3.5
   hooks:
@@ -47,16 +43,13 @@ repos:
       additional_dependencies: [clang-format>=15.0]
       types_or: [c, c++]
     - id: cpplint
-      language: python
-      args: [
-        "--linelength=100", "--recursive",
-        "--filter=-build/c++11,-build/include,-build/namespaces_literals,-runtime/references,-build/include_order,+build/include_what_you_use",
-        "--root=include"]
-      additional_dependencies: [cpplint]
+      language: system
+      entry: python dev/run_cpplint.py
       types_or: [c++]
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.2.0
+- repo: local
   hooks:
     - id: mypy
-      exclude: setup.py
-      additional_dependencies: [types-setuptools]
+      name: mypy
+      entry: mypy --strict
+      language: system
+      types: [python]

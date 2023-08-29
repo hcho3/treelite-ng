@@ -15,16 +15,12 @@ namespace py = pybind11;
 
 namespace treelite::pybind11 {
 
-std::string DumpAsJSON(treelite::Model& model) {
-  return model.DumpAsJSON(true);
+std::string DumpAsJSON(treelite::Model& model, bool pretty_print) {
+  return model.DumpAsJSON(pretty_print);
 }
 
 void init_tree(py::module& m) {
-  m.def("add", &DumpAsJSON, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
+  m.def("dump_as_json", &DumpAsJSON, "");
 }
 
 }  // namespace treelite::pybind11

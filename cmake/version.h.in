@@ -7,5 +7,6 @@
 #define TREELITE_VER_MAJOR @treelite_VERSION_MAJOR@
 #define TREELITE_VER_MINOR @treelite_VERSION_MINOR@
 #define TREELITE_VER_PATCH @treelite_VERSION_PATCH@
+#define TREELITE_VERSION "@treelite_VERSION_MAJOR@.@treelite_VERSION_MINOR@.@treelite_VERSION_PATCH@"
 
 #endif  // TREELITE_VERSION_H_

@@ -1,0 +1,23 @@
+name: treelite_dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pre-commit
+  - scikit-build-core
+  - rapidjson
+  - numpy
+  - scipy
+  - pybind11
+  - pandas
+  - scikit-learn
+  - pytest
+  - hypothesis
+  - ipython
+  - jupyterlab
+  - python-build
+  - black
+  - isort
+  - mypy
+  - pylint
+  - cpplint

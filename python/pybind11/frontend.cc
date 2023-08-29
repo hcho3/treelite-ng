@@ -24,11 +24,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(
 }
 
 void init_frontend(py::module& m) {
-  m.def("add", &treelite::pybind11::LoadXGBoostModel, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
+  m.def("load_xgboost_model", &treelite::pybind11::LoadXGBoostModel, "");
 }
 
 }  // namespace treelite::pybind11

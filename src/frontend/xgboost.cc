@@ -34,6 +34,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 namespace treelite::frontend {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModel(std::string const& filename) {
+  auto path = fs::u8path(filename);
+  TREELITE_CHECK(fs::exists(path)) << "File does not exist";
   std::ifstream fi(fs::u8path(filename), std::ios::in | std::ios::binary);
   return ParseStream(fi);
 }

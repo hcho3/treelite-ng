@@ -8,23 +8,14 @@
 #include "./module.h"
 
 #include <pybind11/pybind11.h>
+#include <treelite/error.h>
+#include <treelite/version.h>
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(_ext, m) {
-  m.doc() = R"pbdoc(
-        Treelite
-        --------
-
-        .. currentmodule:: treelite
-
-        .. autosummary::
-           :toctree: _generate
-
-           add
-           subtract
-    )pbdoc";
-
+  m.attr("__version__") = TREELITE_VERSION;
   treelite::pybind11::init_frontend(m);
   treelite::pybind11::init_tree(m);
+  py::register_local_exception<treelite::Error>(m, "TreeliteError", PyExc_RuntimeError);
 }
