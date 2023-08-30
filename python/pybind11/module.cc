@@ -9,12 +9,14 @@
 
 #include <pybind11/pybind11.h>
 #include <treelite/error.h>
+#include <treelite/tree.h>
 #include <treelite/version.h>
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(_ext, m) {
   m.attr("__version__") = TREELITE_VERSION;
+  py::class_<treelite::Model>(m, "Model");
   treelite::pybind11::init_logging(m);
   treelite::pybind11::init_frontend(m);
   treelite::pybind11::init_tree(m);

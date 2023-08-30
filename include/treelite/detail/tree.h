@@ -102,10 +102,19 @@ inline int Tree<ThresholdType, LeafOutputType>::AllocNode() {
 
 template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::Init() {
-  num_nodes = 1;
-  has_categorical_split_ = false;
-
   node_type_.Clear();
+  cleft_.Clear();
+  cright_.Clear();
+  split_index_.Clear();
+  default_left_.Clear();
+  leaf_value_.Clear();
+  threshold_.Clear();
+  cmp_.Clear();
+  category_list_right_child_.Clear();
+
+  num_nodes = 0;
+  has_categorical_split_ = false;
+  this->AllocNode();
 
   leaf_vector_.Clear();
   leaf_vector_begin_ = std::vector<std::uint64_t>{0};
@@ -183,7 +192,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetLeafVector(
 template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetSumHess(int nid, double sum_hess) {
   if (sum_hess_present_.Empty()) {
-    sum_hess_present_.Resize(num_nodes);
+    sum_hess_present_.Resize(num_nodes, false);
     sum_hess_.Resize(num_nodes);
   }
   sum_hess_.at(nid) = sum_hess;
@@ -193,7 +202,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetSumHess(int nid, double sum_
 template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetDataCount(int nid, std::uint64_t data_count) {
   if (data_count_present_.Empty()) {
-    data_count_present_.Resize(num_nodes);
+    data_count_present_.Resize(num_nodes, false);
     data_count_.Resize(num_nodes);
   }
   data_count_.at(nid) = data_count;
@@ -203,7 +212,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetDataCount(int nid, std::uint
 template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetGain(int nid, double gain) {
   if (gain_present_.Empty()) {
-    gain_present_.Resize(num_nodes);
+    gain_present_.Resize(num_nodes, false);
     gain_.Resize(num_nodes);
   }
   gain_.at(nid) = gain;

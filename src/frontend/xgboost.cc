@@ -435,6 +435,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   if (num_class > 1) {
     // multi-class classifier with grove per class
     model->task_type = treelite::TaskType::kMultiClf;
+    model->class_id = std::vector<std::int32_t>(num_tree);
     for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
       model->class_id[tree_id] = tree_id % num_class;
     }
@@ -480,8 +481,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     std::queue<std::pair<int, int>> Q;  // (old ID, new ID) pair
     Q.emplace(0, 0);
     while (!Q.empty()) {
-      int old_id, new_id;
-      std::tie(old_id, new_id) = Q.front();
+      auto [old_id, new_id] = Q.front();
       Q.pop();
       XGBTree::Node const& node = xgb_tree[old_id];
       const NodeStat stat = xgb_tree.Stat(old_id);

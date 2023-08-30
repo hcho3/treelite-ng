@@ -14,9 +14,18 @@ else()
   message(STATUS "No Conda environment detected")
 endif()
 
+option(USE_SANITIZER "Use sanitizer flags" OFF)
+SET(ENABLED_SANITIZERS "address" "leak" "undefined" CACHE STRING
+        "Semicolon separated list of sanitizer names. E.g 'address;leak'.")
+
 include(cmake/ExternalLibs.cmake)
 include(cmake/Version.cmake)
 write_version()
+
+if(USE_SANITIZER)
+  include(cmake/Sanitizer.cmake)
+  enable_sanitizers("${ENABLED_SANITIZERS}")
+endif()
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 CONFIG REQUIRED)
