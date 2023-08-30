@@ -19,20 +19,21 @@ SET(ENABLED_SANITIZERS "address" "leak" "undefined" CACHE STRING
         "Semicolon separated list of sanitizer names. E.g 'address;leak'.")
 
 include(cmake/ExternalLibs.cmake)
+include(cmake/Utils.cmake)
 include(cmake/Version.cmake)
 write_version()
+set_default_configuration_release()
 
 if(USE_SANITIZER)
   include(cmake/Sanitizer.cmake)
   enable_sanitizers("${ENABLED_SANITIZERS}")
 endif()
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(pybind11 CONFIG REQUIRED)
-
 add_library(objtreelite OBJECT)
 target_sources(objtreelite
     PRIVATE
+    include/treelite/c_api.h
+    include/treelite/c_api_error.h
     include/treelite/contiguous_array.h
     include/treelite/error.h
     include/treelite/frontend.h
@@ -48,6 +49,12 @@ target_sources(objtreelite
     include/treelite/enum/typeinfo.h
     src/json_serializer.cc
     src/logging.cc
+    src/c_api/c_api_utils.h
+    src/c_api/c_api.cc
+    src/c_api/c_api_error.cc
+    src/c_api/frontend.cc
+    src/c_api/logging.cc
+    src/c_api/model.cc
     src/enum/operator.cc
     src/enum/task_type.cc
     src/enum/tree_node_type.cc
@@ -72,23 +79,14 @@ target_include_directories(objtreelite PUBLIC
 add_library(treelite SHARED)
 target_link_libraries(treelite PRIVATE objtreelite)
 
-python_add_library(_ext MODULE WITH_SOABI)
-target_sources(_ext
-    PRIVATE
-    python/pybind11/frontend.cc
-    python/pybind11/logging.cc
-    python/pybind11/module.cc
-    python/pybind11/module.h
-    python/pybind11/tree.cc
-)
-target_link_libraries(_ext PRIVATE pybind11::headers objtreelite)
+set_output_directory(treelite ${PROJECT_BINARY_DIR})
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 if(SKBUILD)
   install(
-      TARGETS _ext
-      DESTINATION treelite
+      TARGETS treelite
+      DESTINATION treelite/lib
   )
 else()
   install(

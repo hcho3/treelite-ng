@@ -8,7 +8,6 @@ dependencies:
   - rapidjson
   - numpy
   - scipy
-  - pybind11
   - pandas
   - scikit-learn
   - pytest

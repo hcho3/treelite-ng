@@ -12,13 +12,13 @@ namespace treelite {
 void LogMessage::Log(std::string const& msg) {
   LogCallbackRegistry const* registry = LogCallbackRegistryStore::Get();
   auto callback = registry->GetCallbackLogInfo();
-  callback(msg);
+  callback(msg.c_str());
 }
 
 void LogMessageWarning::Log(std::string const& msg) {
   LogCallbackRegistry const* registry = LogCallbackRegistryStore::Get();
   auto callback = registry->GetCallbackLogWarning();
-  callback(msg);
+  callback(msg.c_str());
 }
 
 }  // namespace treelite

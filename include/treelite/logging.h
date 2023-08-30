@@ -168,10 +168,10 @@ class LogMessageWarning {
 
 class LogCallbackRegistry {
  public:
-  using Callback = std::function<void(std::string const&)>;
+  using Callback = void (*)(char const*);
   LogCallbackRegistry()
-      : log_callback_info_([](std::string const& msg) { std::cerr << msg << std::endl; }),
-        log_callback_warn_([](std::string const& msg) { std::cerr << msg << std::endl; }) {}
+      : log_callback_info_([](char const* msg) { std::cerr << msg << std::endl; }),
+        log_callback_warn_([](char const* msg) { std::cerr << msg << std::endl; }) {}
   inline void RegisterCallBackLogInfo(Callback log_callback) {
     this->log_callback_info_ = log_callback;
   }

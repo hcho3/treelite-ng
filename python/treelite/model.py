@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ctypes
 from typing import Any, Optional
 
-from .core import _LIB
+from .core import _LIB, _check_call
+from .util import c_str, py_str
 
 
 class Model:
@@ -35,7 +37,15 @@ class Model:
         model :
             loaded model
         """
-        return Model(handle=_LIB.load_xgboost_model(filename, "{}"))
+        handle = ctypes.c_void_p()
+        _check_call(
+            _LIB.TreeliteLoadXGBoostModelEx(
+                c_str(filename),
+                c_str("{}"),
+                ctypes.byref(handle),
+            )
+        )
+        return Model(handle=handle)
 
     def dump_as_json(self, *, pretty_print: bool = True) -> str:
         """
@@ -52,4 +62,12 @@ class Model:
         json_str :
             JSON string representing the model
         """
-        return _LIB.dump_as_json(self._handle, pretty_print)
+        json_str = ctypes.c_char_p()
+        _check_call(
+            _LIB.TreeliteDumpAsJSON(
+                self._handle,
+                ctypes.c_int(1 if pretty_print else 0),
+                ctypes.byref(json_str),
+            )
+        )
+        return py_str(json_str.value)

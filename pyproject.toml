@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.4.8", "pybind11"]
+requires = ["scikit-build-core>=0.4.8"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -40,3 +40,8 @@ plugins = "numpy.typing.mypy_plugin"
 [tool.scikit-build]
 wheel.expand-macos-universal-tags = true
 wheel.packages = ["python/treelite"]
+sdist.exclude = [
+    ".github", "conda", "dev", "tests",
+    "python/.pylintrc", ".clang-format", ".flake8",
+    ".gitignore", ".pre-commit-config.yaml"
+]
