@@ -33,4 +33,34 @@ def load_xgboost_model_legacy_binary(filename: str) -> Model:
     return Model(handle=compat.load_xgboost_model_legacy_binary(filename))
 
 
-__all__ = ["load_xgboost_model_legacy_binary"]
+def load_xgboost_model(filename: str, *, allow_unknown_field: bool = False) -> Model:
+    """
+    Load a tree ensemble model from XGBoost model, stored using the JSON format.
+
+    Parameters
+    ----------
+    filename :
+        Path to model file
+    allow_unknown_field:
+        Whether to allow extra fields with unrecognized keys
+
+    Returns
+    -------
+    model :
+        Loaded model
+
+    Example
+    -------
+
+    .. code-block:: python
+
+       xgb_model = treelite.frontend.load_xgboost_model("xgboost_model.json")
+    """
+    return Model(
+        handle=compat.load_xgboost_model(
+            filename, allow_unknown_field=allow_unknown_field
+        )
+    )
+
+
+__all__ = ["load_xgboost_model_legacy_binary", "load_xgboost_model"]

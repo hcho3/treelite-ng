@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace treelite::frontend::details::xgboost {
+namespace treelite::frontend::detail::xgboost {
 
 struct ProbToMargin {
   static double Sigmoid(double base_score) {
@@ -28,6 +28,8 @@ std::string GetPredTransform(std::string const& objective_name);
 // Transform base score from probability into margin score
 double TransformBaseScoreToMargin(std::string const& pred_transform, double base_score);
 
-}  // namespace treelite::frontend::details::xgboost
+enum FeatureType { kNumerical = 0, kCategorical = 1 };
+
+}  // namespace treelite::frontend::detail::xgboost
 
 #endif  // SRC_FRONTEND_DETAIL_XGBOOST_H_

@@ -1,11 +1,9 @@
 /*!
  * Copyright (c) 2017-2023 by Contributors
- * \file xgboost.cc
- * \brief Frontend for xgboost model
+ * \file xgboost_legacy.cc
+ * \brief Frontend for xgboost model (legacy binary)
  * \author Hyunsu Cho
  */
-
-#include "./detail/xgboost.h"
 
 #include <treelite/frontend.h>
 #include <treelite/logging.h>
@@ -22,6 +20,7 @@
 #include <variant>
 
 #include "./detail/common.h"
+#include "./detail/xgboost.h"
 
 namespace fs = std::filesystem;
 
@@ -33,14 +32,14 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 namespace treelite::frontend {
 
-std::unique_ptr<treelite::Model> LoadXGBoostModel(std::string const& filename) {
+std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(std::string const& filename) {
   auto path = fs::u8path(filename);
   TREELITE_CHECK(fs::exists(path)) << "File does not exist";
   std::ifstream fi(fs::u8path(filename), std::ios::in | std::ios::binary);
   return ParseStream(fi);
 }
 
-std::unique_ptr<treelite::Model> LoadXGBoostModel(void const* buf, std::size_t len) {
+std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(void const* buf, std::size_t len) {
   std::istringstream fi(std::string(static_cast<char const*>(buf), len));
   return ParseStream(fi);
 }
@@ -51,7 +50,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(void const* buf, std::size_t l
 namespace {
 
 using bst_float = float;
-using treelite::frontend::details::StringStartsWith;
+using treelite::frontend::detail::StringStartsWith;
 
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
@@ -156,7 +155,8 @@ struct LearnerModelParam {
   std::int32_t contain_eval_metrics;
   std::uint32_t major_version;
   std::uint32_t minor_version;
-  std::int32_t pad2[27];
+  std::uint32_t num_target;
+  std::int32_t pad2[26];
 };
 static_assert(sizeof(int) == sizeof(std::int32_t), "Wrong size for unsigned int");
 static_assert(sizeof(unsigned) == sizeof(std::uint32_t), "Wrong size for unsigned int");
@@ -424,21 +424,28 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   model->num_feature = static_cast<int>(mparam_.num_feature);
   model->average_tree_output = false;
 
-  // XGBoost binary format only supports a single target
-  model->num_target = 1;
+  // XGBoost binary format only supports decision trees with scalar outputs
+  const std::uint32_t num_target = mparam_.num_target;
+  model->num_target = num_target;
   std::int32_t const num_class = std::max(mparam_.num_class, static_cast<std::int32_t>(1));
-  model->num_class = std::vector<std::uint32_t>{static_cast<std::uint32_t>(num_class)};
+  model->num_class = std::vector<std::uint32_t>(num_target, static_cast<std::uint32_t>(num_class));
   model->leaf_vector_shape = std::vector<std::uint32_t>{1, 1};
   std::int32_t const num_tree = gbm_param_.num_trees;
-  model->target_id = std::vector<std::int32_t>(num_tree, 0);
+
+  // Assume: Either num_target or num_class must be 1
+  TREELITE_CHECK(num_target == 1 || num_class == 1);
 
   if (num_class > 1) {
-    // multi-class classifier with grove per class
+    // Multi-class classifier with grove per class
+    // i-th tree produces output for class (i % num_class)
+    // Note: num_parallel_tree can change this behavior, so it's best to go with
+    // tree_info field provided by XGBoost
     model->task_type = treelite::TaskType::kMultiClf;
     model->class_id = std::vector<std::int32_t>(num_tree);
     for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
-      model->class_id[tree_id] = tree_id % num_class;
+      model->class_id[tree_id] = tree_info[tree_id];
     }
+    model->target_id = std::vector<std::int32_t>(num_tree, 0);
   } else {
     // binary classifier or regressor
     if (StringStartsWith(name_obj_, "binary:")) {
@@ -449,10 +456,14 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       model->task_type = treelite::TaskType::kRegressor;
     }
     model->class_id = std::vector<std::int32_t>(num_tree, 0);
+    model->target_id = std::vector<std::int32_t>(num_tree);
+    for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+      model->target_id[tree_id] = tree_info[tree_id];
+    }
   }
 
   // Set correct prediction transform function, depending on objective function
-  model->pred_transform = treelite::frontend::details::xgboost::GetPredTransform(name_obj_);
+  model->pred_transform = treelite::frontend::detail::xgboost::GetPredTransform(name_obj_);
   if (model->pred_transform == "sigmoid") {
     model->sigmoid_alpha = 1.0f;
   }
@@ -463,10 +474,12 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   // 1.0 it's the original value provided by user.
   bool const need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
-    base_score = treelite::frontend::details::xgboost::TransformBaseScoreToMargin(
+    base_score = treelite::frontend::detail::xgboost::TransformBaseScoreToMargin(
         model->pred_transform, base_score);
   }
-  model->base_scores = std::vector<double>(num_class, base_score);
+  std::size_t const len_base_scores = num_target * num_class;
+  model->base_scores.Resize(len_base_scores);
+  std::fill_n(model->base_scores.Data(), len_base_scores, base_score);
 
   // Traverse trees
   auto& trees = std::get<treelite::ModelPreset<float, float>>(model->variant_).trees;
@@ -502,35 +515,6 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
         Q.emplace(node.cright(), tree.RightChild(new_id));
       }
       tree.SetSumHess(new_id, stat.sum_hess);
-    }
-  }
-
-  // Special handling for multi-class classifier with num_parallel_tree > 1
-  if (num_class > 1) {
-    // Infer num_parallel_tree
-    unsigned num_parallel_tree = 0;
-    for (int e : tree_info) {
-      if (e != 0) {
-        break;
-      }
-      ++num_parallel_tree;
-    }
-    if (num_parallel_tree > 1) {
-      // Re-order trees to recover the grove-per-class layout.
-      // The prediction for the i-th class is determined by the trees whose index is congruent
-      // to [i] modulo [num_class].
-      // Currently, the trees' association with classes is as follows:
-      // 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2
-      // We need to re-order them as follows:
-      // 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2
-      std::vector<treelite::Tree<float, float>> new_trees;
-      for (std::size_t c = 0; c < num_parallel_tree; ++c) {
-        for (std::size_t tree_id = c; tree_id < num_tree; tree_id += num_parallel_tree) {
-          new_trees.push_back(std::move(trees[tree_id]));
-        }
-      }
-      TREELITE_CHECK_EQ(new_trees.size(), num_tree);
-      trees = std::move(new_trees);
     }
   }
   return model;

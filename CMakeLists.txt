@@ -59,10 +59,12 @@ target_sources(objtreelite
     src/enum/task_type.cc
     src/enum/tree_node_type.cc
     src/enum/typeinfo.cc
-    src/frontend/xgboost.cc
+    src/frontend/xgboost_json.cc
+    src/frontend/xgboost_legacy.cc
     src/frontend/detail/common.h
     src/frontend/detail/xgboost.cc
     src/frontend/detail/xgboost.h
+    src/frontend/detail/xgboost_json.h
 )
 set_target_properties(objtreelite
     PROPERTIES
@@ -75,6 +77,13 @@ target_include_directories(objtreelite PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
     $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
+if(MSVC)
+  target_compile_options(objtreelite PRIVATE /MP)
+  target_compile_definitions(objtreelite PRIVATE -DNOMINMAX)
+  target_compile_options(objtreelite PRIVATE /utf-8 -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+else()
+  target_compile_options(objtreelite PRIVATE -funroll-loops)
+endif()
 
 add_library(treelite SHARED)
 target_link_libraries(treelite PRIVATE objtreelite)

@@ -496,8 +496,8 @@ class Model {
   ContiguousArray<std::int32_t> class_id;
   /* Other model parameters */
   std::string pred_transform;
-  float sigmoid_alpha;
-  float ratio_c;
+  float sigmoid_alpha{1.0f};
+  float ratio_c{1.0f};
   ContiguousArray<double> base_scores;
   std::string attributes;
 

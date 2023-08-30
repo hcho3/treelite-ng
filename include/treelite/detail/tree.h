@@ -149,7 +149,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(int nid,
     std::int32_t split_index, bool default_left, std::vector<std::uint32_t> const& category_list,
     bool category_list_right_child) {
-  TREELITE_CHECK(!CategoryList().empty()) << "Cannot set leaf vector twice for same node";
+  TREELITE_CHECK(!CategoryList(nid).empty()) << "Cannot set leaf vector twice for same node";
 
   const std::size_t begin = category_list_.Size();
   const std::size_t end = begin + category_list.size();
@@ -176,7 +176,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetLeaf(int nid, LeafOutputType
 template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetLeafVector(
     int nid, std::vector<LeafOutputType> const& node_leaf_vector) {
-  TREELITE_CHECK(!HasLeafVector()) << "Cannot set leaf vector twice for same node";
+  TREELITE_CHECK(!HasLeafVector(nid)) << "Cannot set leaf vector twice for same node";
   std::size_t begin = leaf_vector_.Size();
   std::size_t end = begin + node_leaf_vector.size();
   leaf_vector_.Extend(node_leaf_vector);

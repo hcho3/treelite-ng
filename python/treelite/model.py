@@ -25,7 +25,9 @@ class Model:
         self._handle = handle
 
     @classmethod
-    def load(cls, filename: str, model_format: str) -> Model:
+    def load(
+        cls, filename: str, model_format: str, allow_unknown_field: bool = False
+    ) -> Model:
         """
         Deprecated. Please use \ref ~treelite.frontend.load_xgboost_model instead.
         Load a tree ensemble model from a file
@@ -36,6 +38,9 @@ class Model:
             Path to model file
         model_format :
             Model file format. Must be "xgboost", "xgboost_json", or "lightgbm"
+        allow_unknown_field:
+            Whether to allow extra fields with unrecognized keys. This flag is only
+            applicable if model_format="xgboost_json"
 
         Returns
         -------
@@ -56,6 +61,13 @@ class Model:
         if model_format == "xgboost":
             deprecation_warning("load_xgboost_model_legacy_binary")
             return Model(handle=compat.load_xgboost_model_legacy_binary(filename))
+        if model_format == "xgboost_json":
+            deprecation_warning("load_xgboost_model")
+            return Model(
+                handle=compat.load_xgboost_model(
+                    filename, allow_unknown_field=allow_unknown_field
+                )
+            )
         raise NotImplementedError("Not implemented yet")
 
     def dump_as_json(self, *, pretty_print: bool = True) -> str:

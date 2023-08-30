@@ -10,12 +10,12 @@
 
 #include <string>
 
-namespace treelite::frontend::details {
+namespace treelite::frontend::detail {
 
 inline bool StringStartsWith(std::string const& str, std::string const& prefix) {
   return str.rfind(prefix, 0) == 0;
 }
 
-}  // namespace treelite::frontend::details
+}  // namespace treelite::frontend::detail
 
 #endif  // SRC_FRONTEND_DETAIL_COMMON_H_
