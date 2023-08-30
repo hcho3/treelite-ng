@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import ctypes
+import warnings
 from typing import Any, Optional
 
+from . import compat
 from .core import _LIB, _check_call
-from .util import c_str, py_str
+from .util import py_str
 
 
 class Model:
@@ -23,29 +25,38 @@ class Model:
         self._handle = handle
 
     @classmethod
-    def load_xgboost_model(cls, filename: str) -> Model:
+    def load(cls, filename: str, model_format: str) -> Model:
         """
-        Load a tree ensemble model from XGBoost model
+        Deprecated. Please use \ref ~treelite.frontend.load_xgboost_model instead.
+        Load a tree ensemble model from a file
 
         Parameters
         ----------
         filename :
             Path to model file
+        model_format :
+            Model file format. Must be "xgboost", "xgboost_json", or "lightgbm"
 
         Returns
         -------
         model :
-            loaded model
+            Loaded model
         """
-        handle = ctypes.c_void_p()
-        _check_call(
-            _LIB.TreeliteLoadXGBoostModelEx(
-                c_str(filename),
-                c_str("{}"),
-                ctypes.byref(handle),
+        model_format = model_format.lower()
+
+        def deprecation_warning(alt: str) -> None:
+            warnings.warn(
+                (
+                    "treelite.Model.load() is deprecated. "
+                    f"Use treelite.frontend.{alt}() instead."
+                ),
+                FutureWarning,
             )
-        )
-        return Model(handle=handle)
+
+        if model_format == "xgboost":
+            deprecation_warning("load_xgboost_model_legacy_binary")
+            return Model(handle=compat.load_xgboost_model_legacy_binary(filename))
+        raise NotImplementedError("Not implemented yet")
 
     def dump_as_json(self, *, pretty_print: bool = True) -> str:
         """
