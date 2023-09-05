@@ -18,9 +18,7 @@ namespace treelite::frontend::detail::xgboost {
 std::string GetPredTransform(std::string const& objective_name) {
   const std::vector<std::string> exponential_objectives{
       "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"};
-  if (objective_name == "multi:softmax") {
-    return "max_index";
-  } else if (objective_name == "multi:softprob") {
+  if (objective_name == "multi:softmax" || objective_name == "multi:softprob") {
     return "softmax";
   } else if (objective_name == "reg:logistic" || objective_name == "binary:logistic") {
     return "sigmoid";
