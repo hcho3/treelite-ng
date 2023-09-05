@@ -15,52 +15,112 @@
 
 #include "detail/threading_utils.h"
 
-using treelite::threading_utils::ThreadConfig;
-
 namespace treelite::gtil {
 
-/*template <typename DMatrixType>
-inline std::size_t PredictImpl(treelite::Model const& model, DMatrixType const* input,
-    float* output, ThreadConfig const& thread_config,
-    treelite::gtil::Configuration const& pred_config, std::vector<std::size_t>& output_shape) {
-  using treelite::gtil::PredictKind;
-  if (pred_config.pred_type == PredictKind::kPredictDefault) {
-    PredictRaw(model, input, output, thread_config);
-    return PredTransform(model, input, output, thread_config, pred_config, output_shape);
-  } else if (pred_config.pred_type == PredictKind::kPredictRaw) {
-    PredictRaw(model, input, output, thread_config);
-    output_shape = {input->GetNumRow(), model.task_param.num_class};
-    return input->GetNumRow() * model.task_param.num_class;
-  } else if (pred_config.pred_type == PredictKind::kPredictLeafID) {
-    PredictLeaf(model, input, output, thread_config);
-    output_shape = {input->GetNumRow(), model.GetNumTree()};
-    return input->GetNumRow() * model.GetNumTree();
-  } else if (pred_config.pred_type == PredictKind::kPredictPerTree) {
-    return PredictScoreByTree(model, input, output, thread_config, output_shape);
-  } else {
-    TREELITE_LOG(FATAL) << "Not implemented";
-    return 0;
+template <typename ThresholdType>
+inline int NextNode(
+    float fvalue, ThresholdType threshold, Operator op, int left_child, int right_child) {
+  bool cond = false;
+  switch (op) {
+  case Operator::kLT:
+    cond = fvalue < threshold;
+    break;
+  case Operator::kLE:
+    cond = fvalue <= threshold;
+    break;
+  case Operator::kEQ:
+    cond = fvalue == threshold;
+    break;
+  case Operator::kGT:
+    cond = fvalue > threshold;
+    break;
+  case Operator::kGE:
+    cond = fvalue >= threshold;
+    break;
+  default:
+    TREELITE_CHECK(false) << "Unrecognized comparison operator " << static_cast<int>(op);
+    return -1;
   }
-}*/
+  return (cond ? left_child : right_child);
+}
+
+inline int NextNodeCategorical(float fvalue, std::vector<std::uint32_t> const& category_list,
+    bool category_list_right_child, int left_child, int right_child) {
+  bool category_matched;
+  auto max_representable_int = static_cast<float>(std::uint32_t(1) << FLT_MANT_DIG);
+  if (fvalue < 0 || std::fabs(fvalue) > max_representable_int) {
+    category_matched = false;
+  } else {
+    auto const category_value = static_cast<std::uint32_t>(fvalue);
+    category_matched = (std::find(category_list.begin(), category_list.end(), category_value)
+                        != category_list.end());
+  }
+  if (category_list_right_child) {
+    return category_matched ? right_child : left_child;
+  } else {
+    return category_matched ? left_child : right_child;
+  }
+}
+
+template <typename OutputLogic, typename ThresholdType, typename LeafOutputType, typename InputT>
+int EvaluateTree(treelite::Tree<ThresholdType, LeafOutputType> const& tree, std::size_t tree_id,
+    InputT const* row, std::size_t num_class) {
+  int node_id = 0;
+  while (!tree.IsLeaf(node_id)) {
+    auto const split_index = tree.SplitIndex(node_id);
+    if (std::isnan(row[split_index])) {
+      node_id = tree.DefaultChild(node_id);
+    } else {
+      float const fvalue = row[split_index];
+      if (tree.SplitType(node_id) == treelite::TreeNodeType::kCategoricalTestNode) {
+        node_id = NextNodeCategorical(fvalue, tree.CategoryList(node_id),
+            tree.CategoryListRightChild(), tree.LeftChild(node_id), tree.RightChild(node_id));
+      } else {
+        node_id = NextNode(
+            fvalue, tree.Threshold(node_id), tree.ComparisonOp(node_id), tree.LeftChild(node_id));
+      }
+    }
+  }
+  return node_id;
+}
+
+template <typename InputT>
+void PredictRaw(Model const& model, InputT* input, InputT* output,
+    threading_utils::ThreadConfig const& config) {}
+
+template <typename InputT>
+void PredictLeaf(Model const& model, InputT* input, InputT* output,
+    threading_utils::ThreadConfig const& config) {}
+
+template <typename InputT>
+void PredictScoreByTree(Model const& model, InputT* input, InputT* output,
+    threading_utils::ThreadConfig const& config) {}
 
 template <typename InputT>
 void Predict(Model const& model, InputT* input, InputT* output, Configuration const& config) {
-  std::visit(
-      [](auto&& concrete_model) {
-        using ModelType = std::remove_const_t<std::remove_reference_t<decltype(concrete_model)>>;
-        using LeafOutputType = typename ModelType::leaf_output_type;
-        if constexpr (std::is_same_v<LeafOutputType, InputT>) {
-        } else {
-          std::string expected = TypeInfoToString(TypeInfoFromType<LeafOutputType>());
-          std::string got = TypeInfoToString(TypeInfoFromType<InputT>());
-          if (got == "invalid") {
-            got = typeid(InputT).name();
-          }
-          TREELITE_LOG(FATAL) << "Incorrect input type passed to GTIL predict(). "
-                              << "Expected: " << expected << ", Got: " << got;
-        }
-      },
-      model.variant_);
+  TypeInfo leaf_output_type = model.GetLeafOutputType();
+  TypeInfo input_type = TypeInfoFromType<InputT>();
+  if (leaf_output_type != input_type) {
+    std::string expected = TypeInfoToString(leaf_output_type);
+    std::string got = TypeInfoToString(input_type);
+    if (got == "invalid") {
+      got = typeid(InputT).name();
+    }
+    TREELITE_LOG(FATAL) << "Incorrect input type passed to GTIL predict(). "
+                        << "Expected: " << expected << ", Got: " << got;
+  }
+  auto thread_config = threading_utils::ConfigureThreadConfig(config.nthread);
+  if (config.pred_type == PredictKind::kPredictDefault) {
+    PredictRaw(model, input, output, thread_config);
+  } else if (config.pred_type == PredictKind::kPredictRaw) {
+    PredictRaw(model, input, output, thread_config);
+  } else if (config.pred_type == PredictKind::kPredictLeafID) {
+    PredictLeaf(model, input, output, thread_config);
+  } else if (config.pred_type == PredictKind::kPredictPerTree) {
+    PredictScoreByTree(model, input, output, thread_config);
+  } else {
+    TREELITE_LOG(FATAL) << "Not implemented";
+  }
 }
 
 template void Predict<float>(Model const&, float*, float*, Configuration const&);

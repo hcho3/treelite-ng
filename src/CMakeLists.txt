@@ -87,6 +87,7 @@ target_sources(objtreelite
     frontend/detail/xgboost.cc
     frontend/detail/xgboost.h
     frontend/detail/xgboost_json.h
+    gtil/config.cc
     gtil/predict.cc
     gtil/detail/omp_exception.h
     gtil/detail/threading_utils.h

@@ -19,7 +19,6 @@
 namespace treelite {
 
 class Model;
-class DMatrix;
 
 namespace gtil {
 
@@ -29,14 +28,14 @@ enum class PredictKind : std::int8_t {
    * \brief Usual prediction method: sum over trees and apply post-processing.
    * Expected output dimensions:
    * - (num_row, num_class) if num_target == 1
-   * - (num_target, num_row, num_class) if num_target > 1
+   * - (num_target, num_row, max_num_class) if num_target > 1
    */
   kPredictDefault = 0,
   /*!
    * \brief Sum over trees, but don't apply post-processing; get raw margin scores instead.
    * Expected output dimensions:
    * - (num_row, num_class) if num_target == 1
-   * - (num_target, num_row, num_class) if num_target > 1
+   * - (num_target, num_row, max_num_class) if num_target > 1
    */
   kPredictRaw = 1,
   /*!
@@ -50,7 +49,7 @@ enum class PredictKind : std::int8_t {
    * \brief Output one or more margin scores per tree.
    * Expected output dimensions:
    * - (num_row, num_tree, num_class) if num_target == 1
-   * - (num_target, num_row, num_tree, num_class) if num_target > 1
+   * - (num_target, num_row, num_tree, max_num_class) if num_target > 1
    */
   kPredictPerTree = 3
 };
@@ -67,7 +66,7 @@ template <typename InputT>
 void Predict(Model const& model, InputT* input, InputT* output, Configuration const& config);
 
 std::vector<std::uint64_t> GetOutputSize(
-    Model const* model, DMatrix const* input, Configuration const& config);
+    Model const* model, std::uint64_t num_row, Configuration const& config);
 
 extern template void Predict<float>(Model const&, float*, float*, Configuration const&);
 extern template void Predict<double>(Model const&, double*, double*, Configuration const&);
