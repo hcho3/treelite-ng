@@ -23,7 +23,7 @@ std::string TypeInfoToString(treelite::TypeInfo info) {
   case treelite::TypeInfo::kFloat64:
     return "float64";
   default:
-    throw Error("Unrecognized type");
+    TREELITE_LOG(FATAL) << "Unrecognized type";
     return "";
   }
 }

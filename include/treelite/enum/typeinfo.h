@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <typeinfo>
 
 namespace treelite {
@@ -32,14 +33,13 @@ TypeInfo TypeInfoFromString(std::string const& str);
  */
 template <typename T>
 inline TypeInfo TypeInfoFromType() {
-  if (std::is_same<T, std::uint32_t>::value) {
+  if (std::is_same_v<T, std::uint32_t>) {
     return TypeInfo::kUInt32;
-  } else if (std::is_same<T, float>::value) {
+  } else if (std::is_same_v<T, float>) {
     return TypeInfo::kFloat32;
-  } else if (std::is_same<T, double>::value) {
+  } else if (std::is_same_v<T, double>) {
     return TypeInfo::kFloat64;
   } else {
-    TREELITE_LOG(FATAL) << "Unrecognized Value type" << typeid(T).name();
     return TypeInfo::kInvalid;
   }
 }

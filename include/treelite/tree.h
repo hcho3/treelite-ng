@@ -312,10 +312,10 @@ class Tree {
   /*!
    * \brief Create a numerical split
    * \param nid ID of node being updated
-   * \param split_index feature index to split
-   * \param threshold threshold value
-   * \param default_left the default direction when feature is unknown
-   * \param cmp comparison operator to compare between feature value and
+   * \param split_index Feature index to split
+   * \param threshold Threshold value
+   * \param default_left Default direction when feature is unknown
+   * \param cmp Comparison operator to compare between feature value and
    *            threshold
    */
   inline void SetNumericalSplit(
@@ -323,12 +323,12 @@ class Tree {
   /*!
    * \brief Create a categorical split
    * \param nid ID of node being updated
-   * \param split_index feature index to split
-   * \param default_left the default direction when feature is unknown
-   * \param category_list list of categories to belong to either the right child node or the left
+   * \param split_index Feature index to split
+   * \param default_left Default direction when feature is unknown
+   * \param category_list List of categories to belong to either the right child node or the left
    *                      child node. Set categories_list_right_child parameter to indicate
    *                      which node the category list should represent.
-   * \param category_list_right_child whether categories_list indicates the list of categories
+   * \param category_list_right_child Whether category_list indicates the list of categories
    *                                  for the right child node (true) or the left child node
    *                                  (false)
    */
@@ -337,31 +337,31 @@ class Tree {
   /*!
    * \brief Set the leaf value of the node
    * \param nid ID of node being updated
-   * \param value leaf value
+   * \param value Leaf value
    */
   inline void SetLeaf(int nid, LeafOutputType value);
   /*!
    * \brief Set the leaf vector of the node; useful for multi-class random forest classifier
    * \param nid ID of node being updated
-   * \param leaf_vector leaf vector
+   * \param leaf_vector Leaf vector
    */
   inline void SetLeafVector(int nid, std::vector<LeafOutputType> const& leaf_vector);
   /*!
    * \brief Set the hessian sum of the node
    * \param nid ID of node being updated
-   * \param sum_hess hessian sum
+   * \param sum_hess Hessian sum
    */
   inline void SetSumHess(int nid, double sum_hess);
   /*!
    * \brief Set the data count of the node
    * \param nid ID of node being updated
-   * \param data_count data count
+   * \param data_count Data count
    */
   inline void SetDataCount(int nid, std::uint64_t data_count);
   /*!
    * \brief Set the gain value of the node
    * \param nid ID of node being updated
-   * \param gain gain value
+   * \param gain Gain value
    */
   inline void SetGain(int nid, double gain);
 };
@@ -478,7 +478,7 @@ class Model {
   }
 
   /*!
-   * \brief number of features used for the model.
+   * \brief Number of features used for the model.
    * It is assumed that all feature indices are between 0 and [num_feature]-1.
    */
   std::int32_t num_feature{0};
