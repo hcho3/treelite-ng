@@ -40,16 +40,14 @@ enum class PredictKind : std::int8_t {
   kPredictRaw = 1,
   /*!
    * \brief Output one (integer) leaf ID per tree.
-   * Expected output dimensions:
-   * - (num_row, num_tree) if num_target == 1
-   * - (num_target, num_row, num_tree) if num_target > 1
+   * Expected output dimensions: (num_row, num_tree)
    */
   kPredictLeafID = 2,
   /*!
    * \brief Output one or more margin scores per tree.
    * Expected output dimensions:
    * - (num_row, num_tree, num_class) if num_target == 1
-   * - (num_target, num_row, num_tree, max_num_class) if num_target > 1
+   * - (num_row, num_tree, max_num_class) if num_target > 1
    */
   kPredictPerTree = 3
 };
