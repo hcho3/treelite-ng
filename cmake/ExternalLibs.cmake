@@ -32,6 +32,9 @@ if(NOT mdspan_POPULATED)
   add_subdirectory(${mdspan_SOURCE_DIR} ${mdspan_BINARY_DIR} EXCLUDE_FROM_ALL)
   message(STATUS "mdspan was downloaded at ${mdspan_SOURCE_DIR}.")
 endif()
+if(MSVC)  # workaround for MSVC 19.x: https://github.com/kokkos/mdspan/issues/276
+  target_compile_options(mdspan INTERFACE "/permissive-")
+endif()
 
 # Google C++ tests
 if(BUILD_CPP_TEST)
