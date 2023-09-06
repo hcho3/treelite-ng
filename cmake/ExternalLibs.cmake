@@ -18,6 +18,21 @@ else()
 endif()
 add_library(RapidJSON::rapidjson ALIAS rapidjson)
 
+# mdspan (header-only library)
+message(STATUS "Fetching mdspan...")
+set(MDSPAN_CXX_STANDARD 17 CACHE STRING "")
+FetchContent_Declare(
+  mdspan
+  GIT_REPOSITORY https://github.com/kokkos/mdspan.git
+  GIT_TAG        mdspan-0.6.0
+)
+FetchContent_GetProperties(mdspan)
+if(NOT mdspan_POPULATED)
+  FetchContent_Populate(mdspan)
+  add_subdirectory(${mdspan_SOURCE_DIR} ${mdspan_BINARY_DIR} EXCLUDE_FROM_ALL)
+  message(STATUS "mdspan was downloaded at ${mdspan_SOURCE_DIR}.")
+endif()
+
 # Google C++ tests
 if(BUILD_CPP_TEST)
   find_package(GTest 1.11.0 CONFIG)

@@ -110,7 +110,7 @@ if(SKBUILD)
       DESTINATION treelite/lib
   )
 else()
-  set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson)
+  set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson mdspan)
   install(TARGETS ${INSTALL_TARGETS}
       EXPORT TreeliteTargets
       ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

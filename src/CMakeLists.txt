@@ -1,7 +1,7 @@
 # Object library
 
 add_library(objtreelite OBJECT)
-target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson)
+target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson std::mdspan)
 
 if(USE_OPENMP)
   if(APPLE)
