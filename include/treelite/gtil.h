@@ -45,9 +45,7 @@ enum class PredictKind : std::int8_t {
   kPredictLeafID = 2,
   /*!
    * \brief Output one or more margin scores per tree.
-   * Expected output dimensions:
-   * - (num_row, num_tree, num_class) if num_target == 1
-   * - (num_row, num_tree, max_num_class) if num_target > 1
+   * Expected output dimensions: (num_row, num_tree, leaf_vector_shape[0] * leaf_vector_shape[1])
    */
   kPredictPerTree = 3
 };
@@ -65,7 +63,7 @@ void Predict(Model const& model, InputT* input, std::uint64_t num_row, InputT* o
     Configuration const& config);
 
 std::vector<std::uint64_t> GetOutputSize(
-    Model const* model, std::uint64_t num_row, Configuration const& config);
+    Model const& model, std::uint64_t num_row, Configuration const& config);
 
 extern template void Predict<float>(
     Model const&, float*, std::uint64_t, float*, Configuration const&);
