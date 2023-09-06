@@ -51,6 +51,13 @@ set_target_properties(objtreelite
     POSITION_INDEPENDENT_CODE ON)
 target_compile_features(objtreelite PUBLIC cxx_std_17)
 
+if(HIDE_CXX_SYMBOLS)
+  set_target_properties(objtreelite
+    PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    CXX_VISIBILITY_PRESET hidden)
+endif(HIDE_CXX_SYMBOLS)
+
 target_sources(objtreelite
     PRIVATE
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api.h
