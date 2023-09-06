@@ -9,6 +9,8 @@
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
+#include <cfloat>
+#include <cmath>
 #include <string>
 #include <type_traits>
 #include <variant>
