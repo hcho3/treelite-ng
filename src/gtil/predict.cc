@@ -195,7 +195,24 @@ void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT
 template <typename InputT>
 void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
     threading_utils::ThreadConfig const& config) {
-  TREELITE_LOG(FATAL) << "Not implemented";
+  auto const num_tree = model.GetNumTree();
+  auto input_view = Array2DView<InputT>(input, num_row, model.num_feature);
+  auto output_view = Array2DView<InputT>(output, num_row, num_tree);
+  TREELITE_CHECK_EQ(output_view.size(), num_row * num_tree);
+  std::visit(
+      [&](auto&& concrete_model) {
+        std::size_t const num_tree = concrete_model.trees.size();
+        for (std::uint64_t row_id = 0; row_id < num_row; ++row_id) {
+          auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
+          static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>, "no");
+          for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+            auto const& tree = concrete_model.trees[tree_id];
+            int const leaf_id = EvaluateTree(tree, row);
+            output_view(row_id, tree_id) = leaf_id;
+          }
+        }
+      },
+      model.variant_);
 }
 
 template <typename InputT>
