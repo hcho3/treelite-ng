@@ -9,9 +9,11 @@
 #include <treelite/logging.h>
 #include <treelite/tree.h>
 
-#include <cfloat>
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <experimental/mdspan>
+#include <limits>
 #include <string>
 #include <type_traits>
 #include <variant>
@@ -20,9 +22,19 @@
 
 namespace treelite::gtil {
 
-template <typename ThresholdType>
+namespace stdex = std::experimental;
+// Multidimensional array views. Use row-major (C) layout
+template <typename ElemT>
+using Array1DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 1>, stdex::layout_right>;
+template <typename ElemT>
+using Array2DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
+template <typename ElemT>
+using Array3DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 3>, stdex::layout_right>;
+
+template <typename InputT, typename ThresholdT>
 inline int NextNode(
-    float fvalue, ThresholdType threshold, Operator op, int left_child, int right_child) {
+    InputT fvalue, ThresholdT threshold, Operator op, int left_child, int right_child) {
+  static_assert(std::is_floating_point_v<InputT>, "Expected floating point type for input");
   bool cond = false;
   switch (op) {
   case Operator::kLT:
@@ -47,10 +59,17 @@ inline int NextNode(
   return (cond ? left_child : right_child);
 }
 
-inline int NextNodeCategorical(float fvalue, std::vector<std::uint32_t> const& category_list,
+template <typename InputT>
+inline int NextNodeCategorical(InputT fvalue, std::vector<std::uint32_t> const& category_list,
     bool category_list_right_child, int left_child, int right_child) {
+  static_assert(std::is_floating_point_v<InputT>, "Expected floating point type for input");
   bool category_matched;
-  auto max_representable_int = static_cast<float>(std::uint32_t(1) << FLT_MANT_DIG);
+  // A valid (integer) category must satisfy two criteria:
+  // 1) it must be exactly representable as InputT (float or double)
+  // 2) it must fit into uint32_t
+  auto max_representable_int
+      = std::min(static_cast<InputT>(std::numeric_limits<std::uint32_t>::max()),
+          static_cast<InputT>(std::uint64_t(1) << std::numeric_limits<InputT>::digits));
   if (fvalue < 0 || std::fabs(fvalue) > max_representable_int) {
     category_matched = false;
   } else {
@@ -65,42 +84,129 @@ inline int NextNodeCategorical(float fvalue, std::vector<std::uint32_t> const& c
   }
 }
 
-template <typename OutputLogic, typename ThresholdType, typename LeafOutputType, typename InputT>
-int EvaluateTree(treelite::Tree<ThresholdType, LeafOutputType> const& tree, std::size_t tree_id,
-    InputT const* row, std::size_t num_class) {
+template <typename ThresholdT, typename LeafOutputT, typename InputT>
+int EvaluateTree(Tree<ThresholdT, LeafOutputT> const& tree, Array1DView<InputT> row) {
   int node_id = 0;
   while (!tree.IsLeaf(node_id)) {
     auto const split_index = tree.SplitIndex(node_id);
-    if (std::isnan(row[split_index])) {
+    if (std::isnan(row(split_index))) {
       node_id = tree.DefaultChild(node_id);
     } else {
-      float const fvalue = row[split_index];
-      if (tree.SplitType(node_id) == treelite::TreeNodeType::kCategoricalTestNode) {
+      InputT const fvalue = row(split_index);
+      if (tree.NodeType(node_id) == treelite::TreeNodeType::kCategoricalTestNode) {
         node_id = NextNodeCategorical(fvalue, tree.CategoryList(node_id),
-            tree.CategoryListRightChild(), tree.LeftChild(node_id), tree.RightChild(node_id));
+            tree.CategoryListRightChild(node_id), tree.LeftChild(node_id),
+            tree.RightChild(node_id));
       } else {
-        node_id = NextNode(
-            fvalue, tree.Threshold(node_id), tree.ComparisonOp(node_id), tree.LeftChild(node_id));
+        node_id = NextNode(fvalue, tree.Threshold(node_id), tree.ComparisonOp(node_id),
+            tree.LeftChild(node_id), tree.RightChild(node_id));
       }
     }
   }
   return node_id;
 }
 
-template <typename InputT>
-void PredictRaw(Model const& model, InputT* input, InputT* output,
-    threading_utils::ThreadConfig const& config) {}
+template <typename ThresholdT, typename LeafOutputT, typename InputT>
+void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& tree, int tree_id,
+    int leaf_id, std::uint64_t row_id, std::uint32_t max_num_class,
+    Array3DView<InputT> output_view) {
+  auto leaf_out = tree.LeafVector(leaf_id);
+  if (model.target_id[tree_id] == -1 && model.class_id[tree_id] == -1) {
+    const std::vector<std::uint32_t> expected_shape{model.num_target, max_num_class};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_shape);
+
+    auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, max_num_class);
+    for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
+      for (std::uint32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+        output_view(target_id, row_id, class_id) += leaf_view(target_id, class_id);
+      }
+    }
+  } else if (model.target_id[tree_id] == -1) {
+    const std::vector<std::uint32_t> expected_leaf_shape{model.num_target, 1};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+    auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, 1);
+    auto const class_id = model.class_id[tree_id];
+    for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
+      output_view(target_id, row_id, class_id) += leaf_view(target_id, 0);
+    }
+  } else if (model.class_id[tree_id] == -1) {
+    const std::vector<std::uint32_t> expected_leaf_shape{1, max_num_class};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+    auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), 1, max_num_class);
+    auto const target_id = model.target_id[tree_id];
+    for (std::uint32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+      output_view(target_id, row_id, class_id) += leaf_view(0, class_id);
+    }
+  } else {
+    const std::vector<std::uint32_t> expected_leaf_shape{1, 1};
+    TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+    auto const target_id = model.target_id[tree_id];
+    auto const class_id = model.class_id[tree_id];
+    output_view(target_id, row_id, class_id) += leaf_out[0];
+  }
+}
+
+template <typename ThresholdT, typename LeafOutputT, typename InputT>
+void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tree, int tree_id,
+    int leaf_id, std::uint64_t row_id, std::uint32_t max_num_class,
+    Array3DView<InputT> output_view) {
+  auto const target_id = model.target_id[tree_id];
+  auto const class_id = model.class_id[tree_id];
+  TREELITE_CHECK(target_id != -1 && class_id != -1);
+
+  const std::vector<std::uint32_t> expected_leaf_shape{1, 1};
+  TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
+
+  output_view(target_id, row_id, class_id) += tree.LeafValue(leaf_id);
+}
 
 template <typename InputT>
-void PredictLeaf(Model const& model, InputT* input, InputT* output,
-    threading_utils::ThreadConfig const& config) {}
+void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+    threading_utils::ThreadConfig const& config) {
+  auto input_view = Array2DView<InputT>(input, num_row, model.num_feature);
+  auto max_num_class
+      = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
+  auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+  TREELITE_CHECK_EQ(output_view.size(), model.num_target * num_row * max_num_class);
+  std::fill(output, output + output_view.size(), InputT{});  // Fill with 0's
+  std::visit(
+      [&](auto&& concrete_model) {
+        std::size_t const num_tree = concrete_model.trees.size();
+        for (std::uint64_t row_id = 0; row_id < num_row; ++row_id) {
+          auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
+          static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>, "no");
+          for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+            auto const& tree = concrete_model.trees[tree_id];
+            int const leaf_id = EvaluateTree(tree, row);
+            if (tree.HasLeafVector(leaf_id)) {
+              OutputLeafVector(model, tree, tree_id, leaf_id, row_id, max_num_class, output_view);
+            } else {
+              OutputLeafValue(model, tree, tree_id, leaf_id, row_id, max_num_class, output_view);
+            }
+          }
+        }
+      },
+      model.variant_);
+}
 
 template <typename InputT>
-void PredictScoreByTree(Model const& model, InputT* input, InputT* output,
-    threading_utils::ThreadConfig const& config) {}
+void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+    threading_utils::ThreadConfig const& config) {
+  TREELITE_LOG(FATAL) << "Not implemented";
+}
 
 template <typename InputT>
-void Predict(Model const& model, InputT* input, InputT* output, Configuration const& config) {
+void PredictScoreByTree(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+    threading_utils::ThreadConfig const& config) {
+  TREELITE_LOG(FATAL) << "Not implemented";
+}
+
+template <typename InputT>
+void Predict(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+    Configuration const& config) {
   TypeInfo leaf_output_type = model.GetLeafOutputType();
   TypeInfo input_type = TypeInfoFromType<InputT>();
   if (leaf_output_type != input_type) {
@@ -114,19 +220,19 @@ void Predict(Model const& model, InputT* input, InputT* output, Configuration co
   }
   auto thread_config = threading_utils::ConfigureThreadConfig(config.nthread);
   if (config.pred_type == PredictKind::kPredictDefault) {
-    PredictRaw(model, input, output, thread_config);
+    TREELITE_LOG(FATAL) << "Not implemented";
   } else if (config.pred_type == PredictKind::kPredictRaw) {
-    PredictRaw(model, input, output, thread_config);
+    PredictRaw(model, input, num_row, output, thread_config);
   } else if (config.pred_type == PredictKind::kPredictLeafID) {
-    PredictLeaf(model, input, output, thread_config);
+    PredictLeaf(model, input, num_row, output, thread_config);
   } else if (config.pred_type == PredictKind::kPredictPerTree) {
-    PredictScoreByTree(model, input, output, thread_config);
+    PredictScoreByTree(model, input, num_row, output, thread_config);
   } else {
     TREELITE_LOG(FATAL) << "Not implemented";
   }
 }
 
-template void Predict<float>(Model const&, float*, float*, Configuration const&);
-template void Predict<double>(Model const&, double*, double*, Configuration const&);
+template void Predict<float>(Model const&, float*, std::uint64_t, float*, Configuration const&);
+template void Predict<double>(Model const&, double*, std::uint64_t, double*, Configuration const&);
 
 }  // namespace treelite::gtil

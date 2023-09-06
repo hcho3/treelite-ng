@@ -9,6 +9,7 @@
 
 #include <treelite/logging.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <vector>
@@ -215,6 +216,14 @@ inline void ContiguousArray<T>::Extend(std::vector<T> const& other) {
   }
   std::memcpy(&buffer_[size_], static_cast<void const*>(other.data()), sizeof(T) * other.size());
   size_ = newsize;
+}
+
+template <typename T>
+inline std::vector<T> ContiguousArray<T>::AsVector() const {
+  auto const size = Size();
+  std::vector<T> vec(size);
+  std::copy(buffer_, buffer_ + size, vec.begin());
+  return vec;
 }
 
 template <typename T>

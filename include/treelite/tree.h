@@ -201,7 +201,7 @@ class Tree {
     // element, to follow with the range semantic of std::vector<>.
   }
   /*!
-   * \brief tests whether the leaf node has a non-empty leaf vector
+   * \brief Tests whether the leaf node has a non-empty leaf vector
    * \param nid ID of node being queried
    */
   inline bool HasLeafVector(int nid) const {
