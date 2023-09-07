@@ -33,6 +33,7 @@ option(Treelite_USE_DYNAMIC_MSVC_RUNTIME
 
 # Developer options
 option(USE_OPENMP "Use OpenMP" ON)
+option(BUILD_CPP_TEST "Build C++ tests" OFF)
 option(DETECT_CONDA_ENV "Enable detection of conda environment for dependencies" ON)
 option(HIDE_CXX_SYMBOLS "Hide all C++ symbols. Useful when building Pip package" OFF)
 option(ENABLE_ALL_WARNINGS "Enable all compiler warnings. Only effective for GCC/Clang" OFF)
@@ -81,6 +82,10 @@ include(cmake/Utils.cmake)
 include(cmake/Version.cmake)
 
 add_subdirectory(src)
+
+if(BUILD_CPP_TEST)
+  add_subdirectory(tests/cpp)
+endif()
 
 add_library(treelite SHARED)
 target_link_libraries(treelite PRIVATE objtreelite)

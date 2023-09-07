@@ -1,0 +1,22 @@
+add_executable(treelite_cpp_test)
+set_target_properties(treelite_cpp_test
+    PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON)
+target_link_libraries(treelite_cpp_test
+    PRIVATE objtreelite rapidjson
+    GTest::GTest GTest::gmock)
+set_output_directory(treelite_cpp_test ${PROJECT_BINARY_DIR})
+
+if(MSVC)
+  target_compile_options(treelite_cpp_test PRIVATE
+      /utf-8 -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+endif()
+
+target_sources(treelite_cpp_test
+    PRIVATE  test_main.cc
+)
+
+target_include_directories(treelite_cpp_test
+    PRIVATE  ${PROJECT_SOURCE_DIR}/src/frontend ${PROJECT_SOURCE_DIR}/src/
+)
