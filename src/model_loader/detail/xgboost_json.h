@@ -13,9 +13,9 @@
 #include <string>
 #include <vector>
 
-#ifndef SRC_FRONTEND_DETAIL_XGBOOST_JSON_H_
-#define SRC_FRONTEND_DETAIL_XGBOOST_JSON_H_
-namespace treelite::frontend::detail {
+#ifndef SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_H_
+#define SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_H_
+namespace treelite::model_loader::detail {
 
 class BaseHandler;
 
@@ -561,5 +561,5 @@ class DelegatedHandler :
   rapidjson::Document const& handler_config_;
 };
 
-}  // namespace treelite::frontend::detail
-#endif  // SRC_FRONTEND_DETAIL_XGBOOST_JSON_H_
+}  // namespace treelite::model_loader::detail
+#endif  // SRC_MODEL_LOADER_DETAIL_XGBOOST_JSON_H_

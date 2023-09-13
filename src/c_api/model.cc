@@ -7,7 +7,6 @@
 
 #include <treelite/c_api.h>
 #include <treelite/c_api_error.h>
-#include <treelite/logging.h>
 #include <treelite/tree.h>
 
 #include <string>

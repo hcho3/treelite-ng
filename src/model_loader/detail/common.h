@@ -5,17 +5,17 @@
  * \author Hyunsu Cho
  */
 
-#ifndef SRC_FRONTEND_DETAIL_COMMON_H_
-#define SRC_FRONTEND_DETAIL_COMMON_H_
+#ifndef SRC_MODEL_LOADER_DETAIL_COMMON_H_
+#define SRC_MODEL_LOADER_DETAIL_COMMON_H_
 
 #include <string>
 
-namespace treelite::frontend::detail {
+namespace treelite::model_loader::detail {
 
 inline bool StringStartsWith(std::string const& str, std::string const& prefix) {
   return str.rfind(prefix, 0) == 0;
 }
 
-}  // namespace treelite::frontend::detail
+}  // namespace treelite::model_loader::detail
 
-#endif  // SRC_FRONTEND_DETAIL_COMMON_H_
+#endif  // SRC_MODEL_LOADER_DETAIL_COMMON_H_

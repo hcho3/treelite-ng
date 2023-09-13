@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace treelite::frontend::detail::xgboost {
+namespace treelite::model_loader::detail::xgboost {
 
 // set correct prediction transform function, depending on objective function
 std::string GetPredTransform(std::string const& objective_name) {
@@ -49,4 +49,4 @@ double TransformBaseScoreToMargin(std::string const& pred_transform, double base
   }
 }
 
-}  // namespace treelite::frontend::detail::xgboost
+}  // namespace treelite::model_loader::detail::xgboost

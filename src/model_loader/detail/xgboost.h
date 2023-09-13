@@ -4,14 +4,14 @@
  * \brief Helper functions for loading XGBoost models
  * \author William Hicks
  */
-#ifndef SRC_FRONTEND_DETAIL_XGBOOST_H_
-#define SRC_FRONTEND_DETAIL_XGBOOST_H_
+#ifndef SRC_MODEL_LOADER_DETAIL_XGBOOST_H_
+#define SRC_MODEL_LOADER_DETAIL_XGBOOST_H_
 
 #include <cmath>
 #include <string>
 #include <vector>
 
-namespace treelite::frontend::detail::xgboost {
+namespace treelite::model_loader::detail::xgboost {
 
 struct ProbToMargin {
   static double Sigmoid(double base_score) {
@@ -30,6 +30,6 @@ double TransformBaseScoreToMargin(std::string const& pred_transform, double base
 
 enum FeatureType { kNumerical = 0, kCategorical = 1 };
 
-}  // namespace treelite::frontend::detail::xgboost
+}  // namespace treelite::model_loader::detail::xgboost
 
-#endif  // SRC_FRONTEND_DETAIL_XGBOOST_H_
+#endif  // SRC_MODEL_LOADER_DETAIL_XGBOOST_H_

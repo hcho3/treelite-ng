@@ -1,11 +1,11 @@
 /*!
  * Copyright (c) 2017-2023 by Contributors
- * \file frontend.h
- * \brief Collection of front-end methods to load or construct ensemble model
+ * \file model_loader.h
+ * \brief Functions for loading tree models from disk or file stream
  * \author Hyunsu Cho
  */
-#ifndef TREELITE_FRONTEND_H_
-#define TREELITE_FRONTEND_H_
+#ifndef TREELITE_MODEL_LOADER_H_
+#define TREELITE_MODEL_LOADER_H_
 
 #include <cstddef>
 #include <memory>
@@ -15,7 +15,7 @@ namespace treelite {
 
 class Model;  // forward declaration
 
-namespace frontend {
+namespace model_loader {
 
 //--------------------------------------------------------------------------
 // Model loaders for XGBoost and LightGBM
@@ -53,7 +53,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(char const* filename, char con
 std::unique_ptr<treelite::Model> LoadXGBoostModelFromString(
     char const* json_str, std::size_t length, char const* config_json);
 
-}  // namespace frontend
+}  // namespace model_loader
 }  // namespace treelite
 
-#endif  // TREELITE_FRONTEND_H_
+#endif  // TREELITE_MODEL_LOADER_H_

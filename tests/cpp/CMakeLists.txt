@@ -14,7 +14,9 @@ if(MSVC)
 endif()
 
 target_sources(treelite_cpp_test
-    PRIVATE  test_main.cc
+    PRIVATE
+    test_main.cc
+    test_gtil.cc
 )
 
 target_include_directories(treelite_cpp_test

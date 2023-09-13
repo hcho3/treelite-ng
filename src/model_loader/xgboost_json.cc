@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2020-2023 by Contributors
  * \file xgboost_json.cc
- * \brief Frontend for xgboost model
+ * \brief Model loader for XGBoost model (JSON)
  * \author Hyunsu Cho
  * \author William Hicks
  */
@@ -10,8 +10,8 @@
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
-#include <treelite/frontend.h>
 #include <treelite/logging.h>
+#include <treelite/model_loader.h>
 #include <treelite/tree.h>
 
 #include <algorithm>
@@ -39,7 +39,7 @@ Iter BinarySearch(Iter begin, Iter end, T const& val);
 
 }  // anonymous namespace
 
-namespace treelite::frontend {
+namespace treelite::model_loader {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModel(char const* filename, char const* config_json) {
   char read_buffer[65536];
@@ -772,7 +772,7 @@ bool DelegatedHandler::EndArray(std::size_t elementCount) {
 }
 
 }  // namespace detail
-}  // namespace treelite::frontend
+}  // namespace treelite::model_loader
 
 namespace {
 
@@ -798,8 +798,8 @@ Iter BinarySearch(Iter begin, Iter end, T const& val) {
 template <typename StreamType, typename ErrorHandlerFunc>
 std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_stream,
     ErrorHandlerFunc error_handler, rapidjson::Document const& config) {
-  std::shared_ptr<treelite::frontend::detail::DelegatedHandler> handler
-      = treelite::frontend::detail::DelegatedHandler::create(config);
+  std::shared_ptr<treelite::model_loader::detail::DelegatedHandler> handler
+      = treelite::model_loader::detail::DelegatedHandler::create(config);
   rapidjson::Reader reader;
 
   rapidjson::ParseResult result
@@ -813,7 +813,7 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
                         << rapidjson::GetParseError_En(error_code) << "\n"
                         << diagnostic;
   }
-  treelite::frontend::detail::ParsedXGBoostModel parsed = handler->get_result();
+  treelite::model_loader::detail::ParsedXGBoostModel parsed = handler->get_result();
   return std::move(parsed.model);
 }
 

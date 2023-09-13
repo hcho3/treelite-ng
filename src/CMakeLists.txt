@@ -64,9 +64,10 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/c_api_error.h
     ${PROJECT_SOURCE_DIR}/include/treelite/contiguous_array.h
     ${PROJECT_SOURCE_DIR}/include/treelite/error.h
-    ${PROJECT_SOURCE_DIR}/include/treelite/frontend.h
     ${PROJECT_SOURCE_DIR}/include/treelite/gtil.h
     ${PROJECT_SOURCE_DIR}/include/treelite/logging.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/model_builder.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/model_loader.h
     ${PROJECT_SOURCE_DIR}/include/treelite/pybuffer_frame.h
     ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
@@ -81,22 +82,22 @@ target_sources(objtreelite
     c_api/c_api_utils.h
     c_api/c_api.cc
     c_api/c_api_error.cc
-    c_api/frontend.cc
     c_api/logging.cc
     c_api/model.cc
+    c_api/model_loader.cc
     enum/operator.cc
     enum/task_type.cc
     enum/tree_node_type.cc
     enum/typeinfo.cc
-    frontend/xgboost_json.cc
-    frontend/xgboost_legacy.cc
-    frontend/detail/common.h
-    frontend/detail/xgboost.cc
-    frontend/detail/xgboost.h
-    frontend/detail/xgboost_json.h
     gtil/config.cc
     gtil/output_size.cc
     gtil/predict.cc
     gtil/detail/omp_exception.h
     gtil/detail/threading_utils.h
+    model_loader/xgboost_json.cc
+    model_loader/xgboost_legacy.cc
+    model_loader/detail/common.h
+    model_loader/detail/xgboost.cc
+    model_loader/detail/xgboost.h
+    model_loader/detail/xgboost_json.h
 )

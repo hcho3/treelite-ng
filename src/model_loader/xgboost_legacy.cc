@@ -1,12 +1,12 @@
 /*!
  * Copyright (c) 2017-2023 by Contributors
  * \file xgboost_legacy.cc
- * \brief Frontend for xgboost model (legacy binary)
+ * \brief Model loader for XGBoost model (legacy binary)
  * \author Hyunsu Cho
  */
 
-#include <treelite/frontend.h>
 #include <treelite/logging.h>
+#include <treelite/model_loader.h>
 #include <treelite/tree.h>
 
 #include <algorithm>
@@ -30,7 +30,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 }  // anonymous namespace
 
-namespace treelite::frontend {
+namespace treelite::model_loader {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(std::string const& filename) {
   auto path = fs::u8path(filename);
@@ -44,13 +44,13 @@ std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(void const* buf, s
   return ParseStream(fi);
 }
 
-}  // namespace treelite::frontend
+}  // namespace treelite::model_loader
 
 /* auxiliary data structures to interpret xgboost model file */
 namespace {
 
 using bst_float = float;
-using treelite::frontend::detail::StringStartsWith;
+using treelite::model_loader::detail::StringStartsWith;
 
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
@@ -463,7 +463,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   // Set correct prediction transform function, depending on objective function
-  model->pred_transform = treelite::frontend::detail::xgboost::GetPredTransform(name_obj_);
+  model->pred_transform = treelite::model_loader::detail::xgboost::GetPredTransform(name_obj_);
   if (model->pred_transform == "sigmoid") {
     model->sigmoid_alpha = 1.0f;
   }
@@ -474,7 +474,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   // 1.0 it's the original value provided by user.
   bool const need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
-    base_score = treelite::frontend::detail::xgboost::TransformBaseScoreToMargin(
+    base_score = treelite::model_loader::detail::xgboost::TransformBaseScoreToMargin(
         model->pred_transform, base_score);
   }
   std::size_t const len_base_scores = num_target * num_class;
