@@ -508,7 +508,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
       } else {
         const bst_float split_cond = node.split_cond();
         tree.AddChilds(new_id);
-        tree.SetNumericalSplit(new_id, node.split_index(), static_cast<float>(split_cond),
+        tree.SetNumericalTest(new_id, node.split_index(), static_cast<float>(split_cond),
             node.default_left(), treelite::Operator::kLT);
         tree.SetGain(new_id, stat.loss_chg);
         Q.emplace(node.cleft(), tree.LeftChild(new_id));

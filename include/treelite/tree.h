@@ -310,7 +310,7 @@ class Tree {
 
   /** Setters **/
   /*!
-   * \brief Create a numerical split
+   * \brief Create a numerical test
    * \param nid ID of node being updated
    * \param split_index Feature index to split
    * \param threshold Threshold value
@@ -318,10 +318,10 @@ class Tree {
    * \param cmp Comparison operator to compare between feature value and
    *            threshold
    */
-  inline void SetNumericalSplit(
+  inline void SetNumericalTest(
       int nid, std::int32_t split_index, ThresholdType threshold, bool default_left, Operator cmp);
   /*!
-   * \brief Create a categorical split
+   * \brief Create a categorical test
    * \param nid ID of node being updated
    * \param split_index Feature index to split
    * \param default_left Default direction when feature is unknown
@@ -332,7 +332,7 @@ class Tree {
    *                                  for the right child node (true) or the left child node
    *                                  (false)
    */
-  inline void SetCategoricalSplit(int nid, std::int32_t split_index, bool default_left,
+  inline void SetCategoricalTest(int nid, std::int32_t split_index, bool default_left,
       std::vector<std::uint32_t> const& category_list, bool category_list_right_child);
   /*!
    * \brief Set the leaf value of the node

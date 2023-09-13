@@ -135,7 +135,7 @@ inline void Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
+inline void Tree<ThresholdType, LeafOutputType>::SetNumericalTest(
     int nid, std::int32_t split_index, ThresholdType threshold, bool default_left, Operator cmp) {
   split_index_.at(nid) = split_index;
   threshold_.at(nid) = threshold;
@@ -146,7 +146,7 @@ inline void Tree<ThresholdType, LeafOutputType>::SetNumericalSplit(
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalSplit(int nid,
+inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalTest(int nid,
     std::int32_t split_index, bool default_left, std::vector<std::uint32_t> const& category_list,
     bool category_list_right_child) {
   TREELITE_CHECK(!CategoryList(nid).empty()) << "Cannot set leaf vector twice for same node";

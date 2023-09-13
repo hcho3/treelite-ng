@@ -360,10 +360,10 @@ bool RegTreeHandler::EndObject(std::size_t) {
         for (int i = 0; i < num_categories; ++i) {
           right_categories.push_back(static_cast<std::uint32_t>(categories[offset + i]));
         }
-        output.SetCategoricalSplit(
+        output.SetCategoricalTest(
             new_id, split_indices[old_id], default_left[old_id], right_categories, true);
       } else {
-        output.SetNumericalSplit(new_id, split_indices[old_id],
+        output.SetNumericalTest(new_id, split_indices[old_id],
             static_cast<float>(split_conditions[old_id]), default_left[old_id],
             treelite::Operator::kLT);
       }
