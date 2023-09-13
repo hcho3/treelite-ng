@@ -31,6 +31,9 @@ std::vector<std::uint64_t> GetOutputSize(
     return {num_row, num_tree};
   case PredictKind::kPredictPerTree:
     return {num_row, num_tree, model.leaf_vector_shape[0] * model.leaf_vector_shape[1]};
+  default:
+    TREELITE_LOG(FATAL) << "Unsupported model type: " << static_cast<int>(config.pred_type);
+    return {};
   }
 }
 

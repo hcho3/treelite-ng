@@ -79,6 +79,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
+    model_builder.cc
     c_api/c_api_utils.h
     c_api/c_api.cc
     c_api/c_api_error.cc
