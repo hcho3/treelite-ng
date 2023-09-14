@@ -26,9 +26,14 @@ class Model;
 
 namespace model_builder {
 
+class Metadata;
+class TreeAnnotation;
+class PredTransformFunc;
+
 // Note: this object must be accessed by a single thread.
 // For parallel tree construction, build multiple model objects and then concatenate them.
 class ModelBuilder {
+ public:
   virtual void StartTree() = 0;
   virtual void EndTree() = 0;
 
@@ -44,11 +49,14 @@ class ModelBuilder {
       = 0;
 
   virtual void LeafScalar(double leaf_value) = 0;
-  virtual void LeafVector(std::vector<double>& leaf_vector) = 0;
+  virtual void LeafVector(std::vector<float> const& leaf_vector) = 0;
+  virtual void LeafVector(std::vector<double> const& leaf_vector) = 0;
 
   virtual void Gain(double gain) = 0;
   virtual void DataCount(std::uint64_t data_count) = 0;
   virtual void SumHess(double sum_hess) = 0;
+
+  virtual std::unique_ptr<Model> CommitModel() = 0;
 };
 
 struct TreeAnnotation {
@@ -57,17 +65,15 @@ struct TreeAnnotation {
   std::vector<std::int32_t> class_id{};
   TreeAnnotation() = default;
   TreeAnnotation(std::uint32_t num_tree, std::vector<std::int32_t> const& target_id,
-      std::vector<std::int32_t> const& class_id)
-      : num_tree{num_tree}, target_id{target_id}, class_id{class_id} {}
+      std::vector<std::int32_t> const& class_id);
 };
 
 struct PredTransformFunc {
   std::string pred_transform_name{};
   std::string config_json{};
   PredTransformFunc() = default;
-  explicit PredTransformFunc(
-      std::string const& pred_transform_name, std::optional<std::string> config_json = std::nullopt)
-      : pred_transform_name(pred_transform_name), config_json(config_json ? *config_json : "{}") {}
+  explicit PredTransformFunc(std::string const& pred_transform_name,
+      std::optional<std::string> config_json = std::nullopt);
 };
 
 struct Metadata {
@@ -80,13 +86,7 @@ struct Metadata {
   Metadata() = default;
   Metadata(std::int32_t num_feature, TaskType task_type, bool average_tree_output,
       std::uint32_t num_target, std::vector<std::uint32_t> const& num_class,
-      std::array<std::uint32_t, 2> const& leaf_vector_shape)
-      : num_feature(num_feature),
-        task_type(task_type),
-        average_tree_output(average_tree_output),
-        num_target(num_target),
-        num_class(num_class),
-        leaf_vector_shape(leaf_vector_shape) {}
+      std::array<std::uint32_t, 2> const& leaf_vector_shape);
 };
 
 std::unique_ptr<ModelBuilder> InitializeModel(TypeInfo threshold_type, TypeInfo leaf_output_type,

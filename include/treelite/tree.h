@@ -367,14 +367,14 @@ class Tree {
 };
 
 /*! \brief Typed portion of the model class */
-template <typename ThresholdType, typename LeafOutputType>
+template <typename ThresholdT, typename LeafOutputT>
 class ModelPreset {
  public:
   /*! \brief member trees */
-  std::vector<Tree<ThresholdType, LeafOutputType>> trees;
+  std::vector<Tree<ThresholdT, LeafOutputT>> trees;
 
-  using threshold_type = ThresholdType;
-  using leaf_output_type = LeafOutputType;
+  using threshold_type = ThresholdT;
+  using leaf_output_type = LeafOutputT;
 
   /*! \brief disable copy; use default move */
   ModelPreset() = default;
@@ -385,10 +385,10 @@ class ModelPreset {
   ModelPreset& operator=(ModelPreset&&) noexcept = default;
 
   inline TypeInfo GetThresholdType() const {
-    return TypeInfoFromType<ThresholdType>();
+    return TypeInfoFromType<ThresholdT>();
   }
   inline TypeInfo GetLeafOutputType() const {
-    return TypeInfoFromType<LeafOutputType>();
+    return TypeInfoFromType<LeafOutputT>();
   }
   inline std::size_t GetNumTree() const {
     return trees.size();

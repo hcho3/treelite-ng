@@ -79,7 +79,6 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
-    model_builder.cc
     c_api/c_api_utils.h
     c_api/c_api.cc
     c_api/c_api_error.cc
@@ -95,6 +94,8 @@ target_sources(objtreelite
     gtil/predict.cc
     gtil/detail/omp_exception.h
     gtil/detail/threading_utils.h
+    model_builder/metadata.cc
+    model_builder/model_builder.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
     model_loader/detail/common.h
