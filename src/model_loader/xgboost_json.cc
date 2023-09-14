@@ -267,7 +267,7 @@ bool RegTreeHandler::Uint(unsigned) {
 }
 
 bool RegTreeHandler::EndObject(std::size_t) {
-  output.Init();
+  output.Init(true);
   auto const num_nodes = reg_tree_params.num_nodes;
   if (split_type.empty()) {
     split_type.resize(num_nodes, xgboost::FeatureType::kNumerical);

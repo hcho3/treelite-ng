@@ -486,7 +486,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   for (auto const& xgb_tree : xgb_trees_) {
     trees.emplace_back();
     treelite::Tree<float, float>& tree = trees.back();
-    tree.Init();
+    tree.Init(true);
 
     // assign node ID's so that a breadth-wise traversal would yield
     // the monotonic sequence 0, 1, 2, ...

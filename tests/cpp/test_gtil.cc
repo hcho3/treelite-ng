@@ -22,9 +22,25 @@ TEST(GTIL, MulticlassClfGrovePerClass) {
   model_builder::TreeAnnotation tree_annotation{3, {0, 0, 0}, {0, 1, 2}};
   model_builder::PredTransformFunc pred_transform{"softmax"};
   std::vector<double> base_scores{0.0, 0.0, 0.0};
-  std::unique_ptr<model_builder::ModelBuilder> model
+  std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
+  for (int i = 0; i < 3; ++i) {
+    builder->StartTree();
+    builder->StartNode(0 + i * 2);
+    builder->NumericalTest(0, 0.0, false, Operator::kLT, 1 + i * 2, 2 + i * 2);
+    builder->EndNode();
+    builder->StartNode(1 + i * 2);
+    builder->LeafScalar(-1.0);
+    builder->EndNode();
+    builder->StartNode(2 + i * 2);
+    builder->LeafScalar(1.0);
+    builder->EndNode();
+    builder->EndTree();
+  }
+
+  std::unique_ptr<Model> model = builder->CommitModel();
+  TREELITE_LOG(INFO) << model->DumpAsJSON(true);
 }
 
 }  // namespace treelite

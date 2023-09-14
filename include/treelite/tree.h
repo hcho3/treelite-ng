@@ -125,7 +125,8 @@ class Tree {
   /*! \brief Number of nodes */
   std::int32_t num_nodes{0};
   /*! \brief Initialize the tree with a single root node */
-  inline void Init();
+  // TODO(hcho3): Remove add_root option
+  inline void Init(bool add_root = false);
   /*! \brief Allocate a new node and return the node's ID */
   inline int AllocNode();
   /*!
@@ -309,6 +310,16 @@ class Tree {
   }
 
   /** Setters **/
+  /*!
+   * \brief Identify two child nodes of the node
+   * \param nid ID of node being modified
+   * \param left_child ID of the left child node
+   * \param right_child ID of the right child node
+   */
+  inline void SetChildren(int nid, int left_child, int right_child) {
+    cleft_[nid] = left_child;
+    cright_[nid] = right_child;
+  }
   /*!
    * \brief Create a numerical test
    * \param nid ID of node being updated

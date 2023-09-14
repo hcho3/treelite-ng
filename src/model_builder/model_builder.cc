@@ -48,17 +48,24 @@ void ConfigurePredTransform(Model* model, PredTransformFunc pred_transform) {
   }
 }
 
+enum class ModelBuilderState : std::int8_t {
+  kExpectTree,
+  kExpectNode,
+  kExpectDetail,
+  kNodeComplete,
+  kModelComplete
+};
+
 template <typename ThresholdT, typename LeafOutputT>
 class ModelBuilderImpl : public ModelBuilder {
  public:
   ModelBuilderImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes)
-      : threshold_type_(TypeInfoFromType<ThresholdT>()),
-        leaf_output_type_(TypeInfoFromType<LeafOutputT>()),
-        expected_num_tree_{tree_annotation.num_tree},
+      : expected_num_tree_{tree_annotation.num_tree},
         model_{Model::Create<ThresholdT, LeafOutputT>()},
-        current_tree_{} {
+        current_tree_{},
+        current_state_{ModelBuilderState::kExpectTree} {
     const std::uint32_t num_tree = tree_annotation.num_tree;
     const std::uint32_t num_target = metadata.num_target;
 
@@ -94,49 +101,168 @@ class ModelBuilderImpl : public ModelBuilder {
   }
 
   void StartTree() override {
+    if (current_state_ != ModelBuilderState::kExpectTree) {
+      TREELITE_LOG(FATAL) << "Unexpected call to StartTree()";
+    }
     current_tree_ = Tree<ThresholdT, LeafOutputT>();
     current_tree_.Init();
+
+    current_state_ = ModelBuilderState::kExpectNode;
   }
 
   void EndTree() override {
+    if (current_state_ != ModelBuilderState::kExpectNode) {
+      TREELITE_LOG(FATAL) << "Unexpected call to EndTree()";
+    }
+
     // TODO(hcho3): Add some validation logic
+    for (std::int32_t i = 0; i < current_tree_.num_nodes; ++i) {
+      if (!current_tree_.IsLeaf(i)) {
+        // Translate left and right child ID to use internal IDs
+        int const cleft = node_id_map_[current_tree_.LeftChild(i)];
+        int const cright = node_id_map_[current_tree_.RightChild(i)];
+        current_tree_.SetChildren(i, cleft, cright);
+      }
+    }
+
     auto& trees = std::get<ModelPreset<ThresholdT, LeafOutputT>>(model_->variant_).trees;
     trees.push_back(std::move(current_tree_));
+
+    node_id_map_.clear();
+    current_state_ = ModelBuilderState::kExpectTree;
   }
 
   void StartNode(int node_key) override {
+    if (current_state_ != ModelBuilderState::kExpectNode) {
+      TREELITE_LOG(FATAL) << "Unexpected call to StartNode()";
+    }
+
     int node_id = current_tree_.AllocNode();
     current_node_id_ = node_id;
     node_id_map_[node_key] = node_id;
+
+    current_state_ = ModelBuilderState::kExpectDetail;
   }
-  void EndNode() override {}
+
+  void EndNode() override {
+    if (current_state_ != ModelBuilderState::kNodeComplete) {
+      TREELITE_LOG(FATAL) << "Unexpected call to EndNode()";
+    }
+    // TODO(hcho3): Add some validation logic
+    current_state_ = ModelBuilderState::kExpectNode;
+  }
+
   void NumericalTest(std::int32_t split_index, double threshold, bool default_left, Operator cmp,
-      int left_child_key, int right_child_key) override {}
+      int left_child_key, int right_child_key) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail) {
+      TREELITE_LOG(FATAL) << "Unexpected call to NumericalTest()";
+    }
+
+    current_tree_.SetNumericalTest(current_node_id_, split_index, threshold, default_left, cmp);
+    // Note: children IDs needs to be later translated into internal IDs
+    current_tree_.SetChildren(current_node_id_, left_child_key, right_child_key);
+
+    current_state_ = ModelBuilderState::kNodeComplete;
+  }
+
   void CategoricalTest(std::int32_t split_index, bool default_left,
       std::vector<std::uint32_t> const& category_list, bool category_list_right_child,
-      int left_child_key, int right_child_key) override {}
-  void LeafScalar(double leaf_value) override {}
-  void LeafVector(std::vector<float> const& leaf_vector) override {}
-  void LeafVector(std::vector<double> const& leaf_vector) override {}
-  void Gain(double gain) override {}
-  void DataCount(std::uint64_t data_count) override {}
-  void SumHess(double sum_hess) override {}
+      int left_child_key, int right_child_key) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail) {
+      TREELITE_LOG(FATAL) << "Unexpected call to CategoricalTest()";
+    }
+
+    current_tree_.SetCategoricalTest(
+        current_node_id_, split_index, default_left, category_list, category_list_right_child);
+    // Note: children IDs needs to be later translated into internal IDs
+    current_tree_.SetChildren(current_node_id_, left_child_key, right_child_key);
+
+    current_state_ = ModelBuilderState::kNodeComplete;
+  }
+
+  void LeafScalar(double leaf_value) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail) {
+      TREELITE_LOG(FATAL) << "Unexpected call to LeafScalar()";
+    }
+
+    current_tree_.SetLeaf(current_node_id_, static_cast<ThresholdT>(leaf_value));
+
+    current_state_ = ModelBuilderState::kNodeComplete;
+  }
+
+  void LeafVector(std::vector<float> const& leaf_vector) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail) {
+      TREELITE_LOG(FATAL) << "Unexpected call to LeafVector()";
+    }
+
+    if constexpr (std::is_same_v<LeafOutputT, float>) {
+      current_tree_.SetLeafVector(current_node_id_, leaf_vector);
+    } else if constexpr (std::is_same_v<LeafOutputT, double>) {
+      TREELITE_LOG(FATAL) << "Mismatched type for leaf vector. Expected: float32, Got: float64";
+    }
+
+    current_state_ = ModelBuilderState::kNodeComplete;
+  }
+
+  void LeafVector(std::vector<double> const& leaf_vector) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail) {
+      TREELITE_LOG(FATAL) << "Unexpected call to LeafVector()";
+    }
+
+    if constexpr (std::is_same_v<LeafOutputT, float>) {
+      TREELITE_LOG(FATAL) << "Mismatched type for leaf vector. Expected: float64, Got: float32";
+    } else if constexpr (std::is_same_v<LeafOutputT, double>) {
+      current_tree_.SetLeafVector(current_node_id_, leaf_vector);
+    }
+
+    current_state_ = ModelBuilderState::kNodeComplete;
+  }
+
+  void Gain(double gain) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail
+        && current_state_ != ModelBuilderState::kNodeComplete) {
+      TREELITE_LOG(FATAL) << "Unexpected call to Gain()";
+    }
+
+    current_tree_.SetGain(current_node_id_, gain);
+  }
+
+  void DataCount(std::uint64_t data_count) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail
+        && current_state_ != ModelBuilderState::kNodeComplete) {
+      TREELITE_LOG(FATAL) << "Unexpected call to DataCount()";
+    }
+
+    current_tree_.SetDataCount(current_node_id_, data_count);
+  }
+
+  void SumHess(double sum_hess) override {
+    if (current_state_ != ModelBuilderState::kExpectDetail
+        && current_state_ != ModelBuilderState::kNodeComplete) {
+      TREELITE_LOG(FATAL) << "Unexpected call to SumHess()";
+    }
+
+    current_tree_.SetSumHess(current_node_id_, sum_hess);
+  }
 
   std::unique_ptr<Model> CommitModel() override {
+    if (current_state_ != ModelBuilderState::kExpectTree) {
+      TREELITE_LOG(FATAL) << "Unexpected call to CommitModel()";
+    }
     TREELITE_CHECK_EQ(model_->GetNumTree(), expected_num_tree_)
         << "Expected " << expected_num_tree_ << " trees but only got " << model_->GetNumTree()
         << " trees instead";
+    current_state_ = ModelBuilderState::kModelComplete;
     return std::move(model_);
   }
 
  private:
-  TypeInfo threshold_type_;
-  TypeInfo leaf_output_type_;
   std::uint32_t expected_num_tree_;
   std::unique_ptr<Model> model_;
   Tree<ThresholdT, LeafOutputT> current_tree_;
   std::map<int, int> node_id_map_;  // user-defined ID -> internal ID
   int current_node_id_;
+  ModelBuilderState current_state_;
 };
 
 }  // namespace detail
