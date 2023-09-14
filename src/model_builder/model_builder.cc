@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -94,6 +95,7 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void StartTree() override {
     current_tree_ = Tree<ThresholdT, LeafOutputT>();
+    current_tree_.Init();
   }
 
   void EndTree() override {
@@ -102,7 +104,11 @@ class ModelBuilderImpl : public ModelBuilder {
     trees.push_back(std::move(current_tree_));
   }
 
-  void StartNode(int node_key) override {}
+  void StartNode(int node_key) override {
+    int node_id = current_tree_.AllocNode();
+    current_node_id_ = node_id;
+    node_id_map_[node_key] = node_id;
+  }
   void EndNode() override {}
   void NumericalTest(std::int32_t split_index, double threshold, bool default_left, Operator cmp,
       int left_child_key, int right_child_key) override {}
@@ -129,25 +135,9 @@ class ModelBuilderImpl : public ModelBuilder {
   std::uint32_t expected_num_tree_;
   std::unique_ptr<Model> model_;
   Tree<ThresholdT, LeafOutputT> current_tree_;
+  std::map<int, int> node_id_map_;  // user-defined ID -> internal ID
+  int current_node_id_;
 };
-
-using ModelBuilderVariant
-    = std::variant<ModelBuilderImpl<float, float>, ModelBuilderImpl<double, double>>;
-
-std::unique_ptr<ModelBuilder> CreateModelBuilderVariant(TypeInfo threshold_type,
-    TypeInfo leaf_output_type, Metadata const& metadata, TreeAnnotation const& tree_annotation,
-    PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
-    std::optional<std::string> const& attributes) {
-  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64);
-  TREELITE_CHECK(leaf_output_type == threshold_type);
-  if (threshold_type == TypeInfo::kFloat32) {
-    return std::make_unique<ModelBuilderImpl<float, float>>(
-        metadata, tree_annotation, pred_transform, base_scores, attributes);
-  } else {
-    return std::make_unique<ModelBuilderImpl<double, double>>(
-        metadata, tree_annotation, pred_transform, base_scores, attributes);
-  }
-}
 
 }  // namespace detail
 
@@ -155,8 +145,15 @@ std::unique_ptr<ModelBuilder> InitializeModel(TypeInfo threshold_type, TypeInfo 
     Metadata const& metadata, TreeAnnotation const& tree_annotation,
     PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
     std::optional<std::string> const& attributes) {
-  return detail::CreateModelBuilderVariant(threshold_type, leaf_output_type, metadata,
-      tree_annotation, pred_transform, base_scores, attributes);
+  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64);
+  TREELITE_CHECK(leaf_output_type == threshold_type);
+  if (threshold_type == TypeInfo::kFloat32) {
+    return std::make_unique<detail::ModelBuilderImpl<float, float>>(
+        metadata, tree_annotation, pred_transform, base_scores, attributes);
+  } else {
+    return std::make_unique<detail::ModelBuilderImpl<double, double>>(
+        metadata, tree_annotation, pred_transform, base_scores, attributes);
+  }
 }
 
 }  // namespace treelite::model_builder

@@ -121,17 +121,17 @@ class Tree {
   template <typename MixIn>
   friend class detail::serializer::Deserializer;
 
-  // Allocate a new node, return the new node's ID
-  inline int AllocNode();
-
  public:
   /*! \brief Number of nodes */
   std::int32_t num_nodes{0};
-  /*! \brief Initialize the model with a single root node */
+  /*! \brief Initialize the tree with a single root node */
   inline void Init();
+  /*! \brief Allocate a new node and return the node's ID */
+  inline int AllocNode();
   /*!
    * \brief Add child nodes to node
    * \param nid node id to add children to
+   * TODO(hcho3): remove this method
    */
   inline void AddChilds(int nid);
 

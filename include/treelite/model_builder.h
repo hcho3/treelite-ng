@@ -57,6 +57,8 @@ class ModelBuilder {
   virtual void SumHess(double sum_hess) = 0;
 
   virtual std::unique_ptr<Model> CommitModel() = 0;
+
+  virtual ~ModelBuilder() = default;
 };
 
 struct TreeAnnotation {
