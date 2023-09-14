@@ -101,7 +101,7 @@ inline int Tree<ThresholdType, LeafOutputType>::AllocNode() {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::Init(bool add_root) {
+inline void Tree<ThresholdType, LeafOutputType>::Init() {
   node_type_.Clear();
   cleft_.Clear();
   cright_.Clear();
@@ -114,27 +114,13 @@ inline void Tree<ThresholdType, LeafOutputType>::Init(bool add_root) {
 
   num_nodes = 0;
   has_categorical_split_ = false;
-  if (add_root) {
-    this->AllocNode();
-  }
 
-  if (add_root) {
-    leaf_vector_.Clear();
-    leaf_vector_begin_ = std::vector<std::uint64_t>{0};
-    leaf_vector_end_ = std::vector<std::uint64_t>{0};
-    category_list_.Clear();
-    category_list_begin_ = std::vector<std::uint64_t>{0};
-    category_list_end_ = std::vector<std::uint64_t>{0};
-
-    SetLeaf(0, static_cast<LeafOutputType>(0));
-  } else {
-    leaf_vector_.Clear();
-    leaf_vector_begin_.Clear();
-    leaf_vector_end_.Clear();
-    category_list_.Clear();
-    category_list_begin_.Clear();
-    category_list_end_.Clear();
-  }
+  leaf_vector_.Clear();
+  leaf_vector_begin_.Clear();
+  leaf_vector_end_.Clear();
+  category_list_.Clear();
+  category_list_begin_.Clear();
+  category_list_end_.Clear();
 }
 
 template <typename ThresholdType, typename LeafOutputType>

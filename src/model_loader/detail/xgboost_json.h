@@ -6,6 +6,7 @@
  */
 
 #include <rapidjson/document.h>
+#include <treelite/model_builder.h>
 #include <treelite/tree.h>
 
 #include <memory>
@@ -338,7 +339,8 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 };
 
 struct ParsedXGBoostModel {
-  std::unique_ptr<treelite::Model> model;
+  std::unique_ptr<treelite::model_builder::ModelBuilder> builder;
+  std::uint32_t num_tree;
   std::vector<unsigned> version;
   std::vector<int> tree_info;
   std::string objective_name;
@@ -553,7 +555,7 @@ class DelegatedHandler :
  private:
   explicit DelegatedHandler(rapidjson::Document const& handler_config)
       : delegates{},
-        result{treelite::Model::Create<float, float>(), {}, {}, ""},
+        result{model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32), {}, {}, ""},
         handler_config_{handler_config} {}
 
   std::stack<std::shared_ptr<BaseHandler>> delegates;

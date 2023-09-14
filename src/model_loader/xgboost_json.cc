@@ -565,7 +565,7 @@ bool LearnerHandler::StartObject() {
 }
 
 bool LearnerHandler::EndObject(std::size_t) {
-  auto const num_tree = static_cast<std::int32_t>(output.model->GetNumTree());
+  auto const num_tree = output.num_tree;
 
   output.model->num_feature = learner_params.num_feature;
   output.model->average_tree_output = false;

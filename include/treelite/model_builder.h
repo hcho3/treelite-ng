@@ -56,6 +56,10 @@ class ModelBuilder {
   virtual void DataCount(std::uint64_t data_count) = 0;
   virtual void SumHess(double sum_hess) = 0;
 
+  virtual void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
+      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      std::optional<std::string> const& attributes)
+      = 0;
   virtual std::unique_ptr<Model> CommitModel() = 0;
 
   virtual ~ModelBuilder() = default;
@@ -65,7 +69,6 @@ struct TreeAnnotation {
   std::uint32_t num_tree{0};
   std::vector<std::int32_t> target_id{};
   std::vector<std::int32_t> class_id{};
-  TreeAnnotation() = default;
   TreeAnnotation(std::uint32_t num_tree, std::vector<std::int32_t> const& target_id,
       std::vector<std::int32_t> const& class_id);
 };
@@ -73,7 +76,6 @@ struct TreeAnnotation {
 struct PredTransformFunc {
   std::string pred_transform_name{};
   std::string config_json{};
-  PredTransformFunc() = default;
   explicit PredTransformFunc(std::string const& pred_transform_name,
       std::optional<std::string> config_json = std::nullopt);
 };
@@ -85,16 +87,17 @@ struct Metadata {
   std::uint32_t num_target{1};
   std::vector<std::uint32_t> num_class{1};
   std::array<std::uint32_t, 2> leaf_vector_shape{1, 1};
-  Metadata() = default;
   Metadata(std::int32_t num_feature, TaskType task_type, bool average_tree_output,
       std::uint32_t num_target, std::vector<std::uint32_t> const& num_class,
       std::array<std::uint32_t, 2> const& leaf_vector_shape);
 };
 
-std::unique_ptr<ModelBuilder> InitializeModel(TypeInfo threshold_type, TypeInfo leaf_output_type,
+std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type,
     Metadata const& metadata, TreeAnnotation const& tree_annotation,
     PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
     std::optional<std::string> const& attributes = std::nullopt);
+std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type);
+// Metadata will be provided later
 
 }  // namespace model_builder
 }  // namespace treelite

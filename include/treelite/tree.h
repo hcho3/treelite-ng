@@ -125,8 +125,7 @@ class Tree {
   /*! \brief Number of nodes */
   std::int32_t num_nodes{0};
   /*! \brief Initialize the tree with a single root node */
-  // TODO(hcho3): Remove add_root option
-  inline void Init(bool add_root = false);
+  inline void Init();
   /*! \brief Allocate a new node and return the node's ID */
   inline int AllocNode();
   /*!

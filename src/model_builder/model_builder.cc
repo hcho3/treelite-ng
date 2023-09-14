@@ -62,6 +62,17 @@ enum class ModelBuilderState : std::int8_t {
 template <typename ThresholdT, typename LeafOutputT>
 class ModelBuilderImpl : public ModelBuilder {
  public:
+  ModelBuilderImpl()
+      : expected_num_tree_{},
+        expected_leaf_size_{},
+        model_{Model::Create<ThresholdT, LeafOutputT>()},
+        current_tree_{},
+        node_id_map_{},
+        current_node_key_{},
+        current_node_id_{},
+        current_state_{ModelBuilderState::kExpectTree},
+        metadata_initialized_{false} {}
+
   ModelBuilderImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes)
@@ -70,46 +81,12 @@ class ModelBuilderImpl : public ModelBuilder {
             metadata.leaf_vector_shape.end(), std::uint32_t(1), std::multiplies<>{})},
         model_{Model::Create<ThresholdT, LeafOutputT>()},
         current_tree_{},
-        current_state_{ModelBuilderState::kExpectTree} {
-    const std::uint32_t num_tree = tree_annotation.num_tree;
-    const std::uint32_t num_target = metadata.num_target;
-
-    model_->num_feature = metadata.num_feature;
-    model_->task_type = metadata.task_type;
-    model_->average_tree_output = metadata.average_tree_output;
-    model_->num_target = num_target;
-    model_->num_class = metadata.num_class;
-    model_->leaf_vector_shape = std::vector<std::uint32_t>(
-        metadata.leaf_vector_shape.begin(), metadata.leaf_vector_shape.end());
-
-    // Validate target_id and class_id
-    for (std::uint32_t i = 0; i < num_tree; ++i) {
-      TREELITE_CHECK_LT(tree_annotation.target_id[i], num_target)
-          << "Element " << i << " of target_id is out of range. Revise it to be smaller than "
-          << "num_target (" << num_target << ")";
-    }
-    model_->target_id = tree_annotation.target_id;
-    for (std::uint32_t i = 0; i < num_tree; ++i) {
-      if (tree_annotation.class_id[i] >= 0) {
-        TREELITE_CHECK_LT(
-            tree_annotation.class_id[i], metadata.num_class[tree_annotation.target_id[i]])
-            << "Element " << i << " of class_id is out of range. Revise it to be smaller than "
-            << "num_class[target_id[" << i << "]] ("
-            << metadata.num_class[tree_annotation.target_id[i]] << ")";
-      }
-    }
-    model_->class_id = tree_annotation.class_id;
-
-    model_->pred_transform = pred_transform.pred_transform_name;
-    detail::ConfigurePredTransform(model_.get(), pred_transform);
-
-    const std::uint32_t max_num_class
-        = *std::max_element(metadata.num_class.begin(), metadata.num_class.end());
-    TREELITE_CHECK_EQ(base_scores.size(), num_target * max_num_class);
-    model_->base_scores = base_scores;
-    if (attributes) {
-      model_->attributes = attributes.value();
-    }
+        node_id_map_{},
+        current_node_key_{},
+        current_node_id_{},
+        current_state_{ModelBuilderState::kExpectTree},
+        metadata_initialized_{true} {
+    InitializeMetadataImpl(metadata, tree_annotation, pred_transform, base_scores, attributes);
   }
 
   void StartTree() override {
@@ -127,7 +104,6 @@ class ModelBuilderImpl : public ModelBuilder {
     TREELITE_CHECK_GT(current_tree_.num_nodes, 0)
         << "Cannot have an empty tree. Please supply at least one node.";
 
-    // TODO(hcho3): Add some validation logic
     std::vector<bool> orphaned(current_tree_.num_nodes, true);
     orphaned[0] = false;  // Root node is by definition not orphaned
     for (std::int32_t i = 0; i < current_tree_.num_nodes; ++i) {
@@ -196,8 +172,10 @@ class ModelBuilderImpl : public ModelBuilder {
     TREELITE_CHECK(current_node_key_ != left_child_key && current_node_key_ != right_child_key)
         << "Duplicated key " << current_node_key_ << " used by a child node";
     TREELITE_CHECK_NE(left_child_key, right_child_key) << "Left and child nodes must be unique";
-    TREELITE_CHECK_LT(split_index, model_->num_feature)
-        << "split_index must be less than num_feature (" << model_->num_feature << ")";
+    if (metadata_initialized_) {
+      TREELITE_CHECK_LT(split_index, model_->num_feature)
+          << "split_index must be less than num_feature (" << model_->num_feature << ")";
+    }
 
     current_tree_.SetNumericalTest(current_node_id_, split_index, threshold, default_left, cmp);
     // Note: children IDs needs to be later translated into internal IDs
@@ -215,8 +193,10 @@ class ModelBuilderImpl : public ModelBuilder {
     TREELITE_CHECK(current_node_key_ != left_child_key && current_node_key_ != right_child_key)
         << "Duplicated key " << current_node_key_ << " used by a child node";
     TREELITE_CHECK_NE(left_child_key, right_child_key) << "Left and child nodes must be unique";
-    TREELITE_CHECK_LT(split_index, model_->num_feature)
-        << "split_index must be less than num_feature (" << model_->num_feature << ")";
+    if (metadata_initialized_) {
+      TREELITE_CHECK_LT(split_index, model_->num_feature)
+          << "split_index must be less than num_feature (" << model_->num_feature << ")";
+    }
 
     current_tree_.SetCategoricalTest(
         current_node_id_, split_index, default_left, category_list, category_list_right_child);
@@ -228,8 +208,10 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void LeafScalar(double leaf_value) override {
     CheckStateWithDiagnostic("LeafScalar()", {ModelBuilderState::kExpectDetail}, current_state_);
-    TREELITE_CHECK_EQ(expected_leaf_size_, 1)
-        << "Cannot call LeafScalar(). Expected leaf output of length " << expected_leaf_size_;
+    if (metadata_initialized_) {
+      TREELITE_CHECK_EQ(expected_leaf_size_, 1)
+          << "Cannot call LeafScalar(). Expected leaf output of length " << expected_leaf_size_;
+    }
 
     current_tree_.SetLeaf(current_node_id_, static_cast<ThresholdT>(leaf_value));
 
@@ -238,8 +220,10 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void LeafVector(std::vector<float> const& leaf_vector) override {
     CheckStateWithDiagnostic("LeafVector()", {ModelBuilderState::kExpectDetail}, current_state_);
-    TREELITE_CHECK_EQ(expected_leaf_size_, leaf_vector.size())
-        << "Expected leaf output of length " << expected_leaf_size_;
+    if (metadata_initialized_) {
+      TREELITE_CHECK_EQ(expected_leaf_size_, leaf_vector.size())
+          << "Expected leaf output of length " << expected_leaf_size_;
+    }
 
     if constexpr (std::is_same_v<LeafOutputT, float>) {
       current_tree_.SetLeafVector(current_node_id_, leaf_vector);
@@ -252,8 +236,10 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void LeafVector(std::vector<double> const& leaf_vector) override {
     CheckStateWithDiagnostic("LeafVector()", {ModelBuilderState::kExpectDetail}, current_state_);
-    TREELITE_CHECK_EQ(expected_leaf_size_, leaf_vector.size())
-        << "Expected leaf output of length " << expected_leaf_size_;
+    if (metadata_initialized_) {
+      TREELITE_CHECK_EQ(expected_leaf_size_, leaf_vector.size())
+          << "Expected leaf output of length " << expected_leaf_size_;
+    }
 
     if constexpr (std::is_same_v<LeafOutputT, float>) {
       TREELITE_LOG(FATAL) << "Mismatched type for leaf vector. Expected: float64, Got: float32";
@@ -287,11 +273,19 @@ class ModelBuilderImpl : public ModelBuilder {
 
   std::unique_ptr<Model> CommitModel() override {
     CheckStateWithDiagnostic("CommitModel()", {ModelBuilderState::kExpectTree}, current_state_);
+    TREELITE_CHECK(metadata_initialized_) << "The model does not yet have a valid metadata. "
+                                          << "Please add metadata by calling InitializeMetadata().";
     TREELITE_CHECK_EQ(model_->GetNumTree(), expected_num_tree_)
         << "Expected " << expected_num_tree_ << " trees but only got " << model_->GetNumTree()
         << " trees instead";
     current_state_ = ModelBuilderState::kModelComplete;
     return std::move(model_);
+  }
+
+  void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
+      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      std::string const& attributes) override {
+    InitializeMetadataImpl(metadata, tree_annotation, pred_transform, base_scores, attributes);
   }
 
  private:
@@ -303,6 +297,7 @@ class ModelBuilderImpl : public ModelBuilder {
   int current_node_key_;  // current node ID (user-defined)
   int current_node_id_;  // current node ID (internal)
   ModelBuilderState current_state_;
+  bool metadata_initialized_{false};
 
   void CheckStateWithDiagnostic(std::string const& func_name,
       std::vector<ModelBuilderState> const& valid_states, ModelBuilderState actual_state) {
@@ -331,11 +326,56 @@ class ModelBuilderImpl : public ModelBuilder {
       }
     }
   }
+
+  void InitializeMetadataImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
+      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      std::optional<std::string> const& attributes) {
+    TREELITE_CHECK(!metadata_initialized_) << "Metadata must be initialized only once";
+    const std::uint32_t num_tree = tree_annotation.num_tree;
+    const std::uint32_t num_target = metadata.num_target;
+
+    model_->num_feature = metadata.num_feature;
+    model_->task_type = metadata.task_type;
+    model_->average_tree_output = metadata.average_tree_output;
+    model_->num_target = num_target;
+    model_->num_class = metadata.num_class;
+    model_->leaf_vector_shape = std::vector<std::uint32_t>(
+        metadata.leaf_vector_shape.begin(), metadata.leaf_vector_shape.end());
+
+    // Validate target_id and class_id
+    for (std::uint32_t i = 0; i < num_tree; ++i) {
+      TREELITE_CHECK_LT(tree_annotation.target_id[i], num_target)
+          << "Element " << i << " of target_id is out of range. Revise it to be smaller than "
+          << "num_target (" << num_target << ")";
+    }
+    model_->target_id = tree_annotation.target_id;
+    for (std::uint32_t i = 0; i < num_tree; ++i) {
+      if (tree_annotation.class_id[i] >= 0) {
+        TREELITE_CHECK_LT(
+            tree_annotation.class_id[i], metadata.num_class[tree_annotation.target_id[i]])
+            << "Element " << i << " of class_id is out of range. Revise it to be smaller than "
+            << "num_class[target_id[" << i << "]] ("
+            << metadata.num_class[tree_annotation.target_id[i]] << ")";
+      }
+    }
+    model_->class_id = tree_annotation.class_id;
+
+    model_->pred_transform = pred_transform.pred_transform_name;
+    detail::ConfigurePredTransform(model_.get(), pred_transform);
+
+    const std::uint32_t max_num_class
+        = *std::max_element(metadata.num_class.begin(), metadata.num_class.end());
+    TREELITE_CHECK_EQ(base_scores.size(), num_target * max_num_class);
+    model_->base_scores = base_scores;
+    if (attributes) {
+      model_->attributes = attributes.value();
+    }
+  }
 };
 
 }  // namespace detail
 
-std::unique_ptr<ModelBuilder> InitializeModel(TypeInfo threshold_type, TypeInfo leaf_output_type,
+std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type,
     Metadata const& metadata, TreeAnnotation const& tree_annotation,
     PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
     std::optional<std::string> const& attributes) {
@@ -349,6 +389,18 @@ std::unique_ptr<ModelBuilder> InitializeModel(TypeInfo threshold_type, TypeInfo 
   } else {
     return std::make_unique<detail::ModelBuilderImpl<double, double>>(
         metadata, tree_annotation, pred_transform, base_scores, attributes);
+  }
+}
+
+std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type) {
+  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64)
+      << "threshold_type must be either float32 or float64";
+  TREELITE_CHECK(leaf_output_type == threshold_type)
+      << "threshold_type must be identical to leaf_output_type";
+  if (threshold_type == TypeInfo::kFloat32) {
+    return std::make_unique<detail::ModelBuilderImpl<float, float>>();
+  } else {
+    return std::make_unique<detail::ModelBuilderImpl<double, double>>();
   }
 }
 
