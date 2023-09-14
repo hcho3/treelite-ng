@@ -6,6 +6,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <treelite/detail/threading_utils.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
@@ -52,7 +53,7 @@ TEST(ModelBuilder, InvalidNodeID) {
   EXPECT_THROW(builder->NumericalTest(0, 0.0, true, Operator::kLT, 2, -1), Error);
 }
 
-TEST(GTIL, InvalidState) {
+TEST(ModelBuilder, InvalidState) {
   model_builder::Metadata metadata{1, TaskType::kMultiClf, false, 1, {2}, {1, 2}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {-1}};
   model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
@@ -113,6 +114,39 @@ TEST(GTIL, InvalidState) {
   EXPECT_THROW(builder->EndNode(), Error);
   EXPECT_THROW(builder->EndTree(), Error);
   EXPECT_THROW(builder->CommitModel(), Error);
+}
+
+TEST(ModelBuilder, NodeMapping) {
+  model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
+  model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
+  model_builder::PredTransformFunc pred_transform{"sigmoid"};
+  std::vector<double> base_scores{0.0};
+
+  int const n_trial = 10;
+  std::vector<std::string> dump(n_trial);
+  detail::threading_utils::ThreadConfig config(-1);
+  detail::threading_utils::ParallelFor(
+      0, n_trial, config, detail::threading_utils::ParallelSchedule::Static(), [&](int i, int) {
+        std::unique_ptr<model_builder::ModelBuilder> builder
+            = model_builder::InitializeModel(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
+                tree_annotation, pred_transform, base_scores);
+        builder->StartTree();
+        builder->StartNode(0 + i * 2);
+        builder->NumericalTest(0, 0.0, false, Operator::kLT, 1 + i * 2, 2 + i * 2);
+        builder->EndNode();
+        builder->StartNode(1 + i * 2);
+        builder->LeafScalar(-1.0);
+        builder->EndNode();
+        builder->StartNode(2 + i * 2);
+        builder->LeafScalar(1.0);
+        builder->EndNode();
+        builder->EndTree();
+        std::unique_ptr<Model> model = builder->CommitModel();
+        dump[i] = model->DumpAsJSON(true);
+      });
+  detail::threading_utils::ParallelFor(1, n_trial, config,
+      detail::threading_utils::ParallelSchedule::Static(),
+      [&](int i, int) { TREELITE_CHECK_EQ(dump[0], dump[i]); });
 }
 
 }  // namespace treelite

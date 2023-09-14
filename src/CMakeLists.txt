@@ -72,6 +72,8 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/omp_exception.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/threading_utils.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/operator.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/task_type.h
@@ -92,8 +94,6 @@ target_sources(objtreelite
     gtil/config.cc
     gtil/output_size.cc
     gtil/predict.cc
-    gtil/detail/omp_exception.h
-    gtil/detail/threading_utils.h
     model_builder/metadata.cc
     model_builder/model_builder.cc
     model_loader/xgboost_json.cc

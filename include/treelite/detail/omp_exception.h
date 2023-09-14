@@ -4,8 +4,8 @@
  * \author Hyunsu Cho
  * \brief Utility to propagate exceptions throws inside an OpenMP block
  */
-#ifndef SRC_GTIL_DETAIL_OMP_EXCEPTION_H_
-#define SRC_GTIL_DETAIL_OMP_EXCEPTION_H_
+#ifndef TREELITE_DETAIL_OMP_EXCEPTION_H_
+#define TREELITE_DETAIL_OMP_EXCEPTION_H_
 
 #include <treelite/error.h>
 
@@ -57,4 +57,4 @@ class OMPException {
 
 }  // namespace treelite
 
-#endif  // SRC_GTIL_DETAIL_OMP_EXCEPTION_H_
+#endif  // TREELITE_DETAIL_OMP_EXCEPTION_H_

@@ -5,6 +5,7 @@
  * \brief General Tree Inference Library (GTIL), providing a reference implementation for
  *        predicting with decision trees.
  */
+#include <treelite/detail/threading_utils.h>
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
 #include <treelite/tree.h>
@@ -17,8 +18,6 @@
 #include <string>
 #include <type_traits>
 #include <variant>
-
-#include "detail/threading_utils.h"
 
 namespace treelite::gtil {
 
@@ -165,7 +164,7 @@ void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tr
 
 template <typename InputT>
 void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
-    threading_utils::ThreadConfig const& config) {
+    detail::threading_utils::ThreadConfig const& config) {
   auto input_view = Array2DView<InputT>(input, num_row, model.num_feature);
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
@@ -194,7 +193,7 @@ void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT
 
 template <typename InputT>
 void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
-    threading_utils::ThreadConfig const& config) {
+    detail::threading_utils::ThreadConfig const& config) {
   auto const num_tree = model.GetNumTree();
   auto input_view = Array2DView<InputT>(input, num_row, model.num_feature);
   auto output_view = Array2DView<InputT>(output, num_row, num_tree);
@@ -217,7 +216,7 @@ void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, Input
 
 template <typename InputT>
 void PredictScoreByTree(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
-    threading_utils::ThreadConfig const& config) {
+    detail::threading_utils::ThreadConfig const& config) {
   TREELITE_LOG(FATAL) << "Not implemented";
 }
 
@@ -235,7 +234,7 @@ void Predict(Model const& model, InputT* input, std::uint64_t num_row, InputT* o
     TREELITE_LOG(FATAL) << "Incorrect input type passed to GTIL predict(). "
                         << "Expected: " << expected << ", Got: " << got;
   }
-  auto thread_config = threading_utils::ConfigureThreadConfig(config.nthread);
+  auto thread_config = detail::threading_utils::ThreadConfig(config.nthread);
   if (config.pred_type == PredictKind::kPredictDefault) {
     TREELITE_LOG(FATAL) << "Not implemented";
   } else if (config.pred_type == PredictKind::kPredictRaw) {

@@ -5,9 +5,10 @@
  * \author Hyunsu Cho
  */
 
-#ifndef SRC_GTIL_DETAIL_THREADING_UTILS_H_
-#define SRC_GTIL_DETAIL_THREADING_UTILS_H_
+#ifndef TREELITE_DETAIL_THREADING_UTILS_H_
+#define TREELITE_DETAIL_THREADING_UTILS_H_
 
+#include <treelite/detail/omp_exception.h>
 #include <treelite/logging.h>
 
 #include <algorithm>
@@ -17,8 +18,6 @@
 #include <limits>
 #include <mutex>
 #include <type_traits>
-
-#include "./omp_exception.h"
 
 #if TREELITE_OPENMP_SUPPORT
 #include <omp.h>
@@ -36,7 +35,7 @@ inline int omp_get_num_procs() {
 
 #endif  // TREELITE_OPENMP_SUPPORT
 
-namespace treelite::threading_utils {
+namespace treelite::detail::threading_utils {
 
 inline int OmpGetThreadLimit() {
 // MSVC doesn't implement the thread limit.
@@ -58,24 +57,23 @@ inline int MaxNumThread() {
  */
 struct ThreadConfig {
   std::uint32_t nthread;
-};
-
-/*!
- * \brief Create therad configuration.
- * @param nthread Number of threads to use. If \<= 0, use all available threads. This value is
- *                validated to ensure that it's in a valid range.
- * @return Thread configuration
- */
-inline ThreadConfig ConfigureThreadConfig(int nthread) {
-  if (nthread <= 0) {
-    nthread = MaxNumThread();
-    TREELITE_CHECK_GE(nthread, 1) << "Invalid number of threads configured in OpenMP";
-  } else {
-    TREELITE_CHECK_LE(nthread, MaxNumThread())
-        << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
+  /*!
+   * \brief Create thread configuration.
+   * @param nthread Number of threads to use. If \<= 0, use all available threads. This value is
+   *                validated to ensure that it's in a valid range.
+   * @return Thread configuration
+   */
+  explicit ThreadConfig(int nthread) {
+    if (nthread <= 0) {
+      nthread = MaxNumThread();
+      TREELITE_CHECK_GE(nthread, 1) << "Invalid number of threads configured in OpenMP";
+    } else {
+      TREELITE_CHECK_LE(nthread, MaxNumThread())
+          << "nthread cannot exceed " << MaxNumThread() << " (configured by OpenMP).";
+    }
+    this->nthread = static_cast<std::uint32_t>(nthread);
   }
-  return ThreadConfig{static_cast<std::uint32_t>(nthread)};
-}
+};
 
 // OpenMP schedule
 struct ParallelSchedule {
@@ -163,6 +161,6 @@ inline void ParallelFor(IndexType begin, IndexType end, ThreadConfig const& thre
   exc.Rethrow();
 }
 
-}  // namespace treelite::threading_utils
+}  // namespace treelite::detail::threading_utils
 
-#endif  // SRC_GTIL_DETAIL_THREADING_UTILS_H_
+#endif  // TREELITE_DETAIL_THREADING_UTILS_H_
