@@ -6,6 +6,9 @@ dependencies:
   - pre-commit
   - scikit-build-core
   - rapidjson
+  - gtest
+  - gmock
+  - fmt
   - numpy
   - scipy
   - pandas

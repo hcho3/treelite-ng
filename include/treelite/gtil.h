@@ -55,7 +55,7 @@ struct Configuration {
   int nthread{0};  // use all threads by default
   PredictKind pred_type{PredictKind::kPredictDefault};
   Configuration() = default;
-  explicit Configuration(char const* config_json);
+  explicit Configuration(std::string const& config_json);
 };
 
 template <typename InputT>

@@ -29,7 +29,7 @@ namespace detail {
 
 void ConfigurePredTransform(Model* model, PredTransformFunc pred_transform) {
   rapidjson::Document config;
-  config.Parse(pred_transform.config_json.c_str());
+  config.Parse(pred_transform.config_json);
   TREELITE_CHECK(!config.HasParseError())
       << "Error when parsing JSON config: offset " << config.GetErrorOffset() << ", "
       << rapidjson::GetParseError_En(config.GetParseError());

@@ -2,6 +2,7 @@ include(FetchContent)
 
 # RapidJSON (header-only library)
 add_library(rapidjson INTERFACE)
+target_compile_definitions(rapidjson INTERFACE -DRAPIDJSON_HAS_STDSTRING=1)
 find_package(RapidJSON)
 if(RapidJSON_FOUND)
   target_include_directories(rapidjson INTERFACE ${RAPIDJSON_INCLUDE_DIRS})
@@ -53,5 +54,25 @@ if(BUILD_CPP_TEST)
       # Do not install gtest
       set_property(DIRECTORY ${googletest_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL YES)
     endif()
+  endif()
+endif()
+
+# fmtlib
+if(BUILD_CPP_TEST)
+  find_package(fmt 10.1)
+  if(fmt_FOUND)
+    get_target_property(fmt_loc fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "Found fmtlib at ${fmt_loc}")
+    set(FMTLIB_FROM_SYSTEM_ROOT TRUE)
+  else()
+    message(STATUS "Did not find fmtlib in the system root. Fetching fmtlib now...")
+    FetchContent_Declare(
+        fmtlib
+        GIT_REPOSITORY  https://github.com/fmtlib/fmt.git
+        GIT_TAG         10.1.1
+    )
+    FetchContent_MakeAvailable(fmtlib)
+    set_target_properties(fmt PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    set(FMTLIB_FROM_SYSTEM_ROOT FALSE)
   endif()
 endif()

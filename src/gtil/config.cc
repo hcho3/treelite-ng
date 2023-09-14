@@ -12,7 +12,7 @@
 
 namespace treelite::gtil {
 
-Configuration::Configuration(char const* config_json) {
+Configuration::Configuration(std::string const& config_json) {
   rapidjson::Document parsed_config;
   parsed_config.Parse(config_json);
 
