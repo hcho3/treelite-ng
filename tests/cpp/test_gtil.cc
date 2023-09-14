@@ -43,4 +43,40 @@ TEST(GTIL, MulticlassClfGrovePerClass) {
   TREELITE_LOG(INFO) << model->DumpAsJSON(true);
 }
 
+TEST(GTIL, OrphanedNodes) {
+  model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
+  model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
+  model_builder::PredTransformFunc pred_transform{"softmax"};
+  std::vector<double> base_scores{0.0};
+  std::unique_ptr<model_builder::ModelBuilder> builder
+      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+          tree_annotation, pred_transform, base_scores);
+  builder->StartTree();
+  builder->StartNode(0);
+  builder->LeafScalar(0.0);
+  builder->EndNode();
+  builder->StartNode(1);
+  builder->LeafScalar(1.0);
+  builder->EndNode();
+  ASSERT_THROW(builder->EndTree(), Error);
+}
+
+TEST(GTIL, InvalidNodeID) {
+  model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
+  model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
+  model_builder::PredTransformFunc pred_transform{"softmax"};
+  std::vector<double> base_scores{0.0};
+  std::unique_ptr<model_builder::ModelBuilder> builder
+      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+          tree_annotation, pred_transform, base_scores);
+  builder->StartTree();
+  ASSERT_THROW(builder->StartNode(-1), Error);
+  builder->StartNode(0);
+  ASSERT_THROW(builder->NumericalTest(0, 0.0, true, Operator::kLT, 0, 1), Error);
+  ASSERT_THROW(builder->NumericalTest(0, 0.0, true, Operator::kLT, 2, 2), Error);
+  ASSERT_THROW(builder->NumericalTest(0, 0.0, true, Operator::kLT, -1, -2), Error);
+  ASSERT_THROW(builder->NumericalTest(0, 0.0, true, Operator::kLT, -1, 2), Error);
+  ASSERT_THROW(builder->NumericalTest(0, 0.0, true, Operator::kLT, 2, -1), Error);
+}
+
 }  // namespace treelite

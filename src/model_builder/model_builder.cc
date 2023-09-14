@@ -116,13 +116,29 @@ class ModelBuilderImpl : public ModelBuilder {
     }
 
     // TODO(hcho3): Add some validation logic
+    std::vector<bool> orphaned(current_tree_.num_nodes, true);
+    orphaned[0] = false;  // Root node is by definition not orphaned
     for (std::int32_t i = 0; i < current_tree_.num_nodes; ++i) {
       if (!current_tree_.IsLeaf(i)) {
         // Translate left and right child ID to use internal IDs
         int const cleft = node_id_map_[current_tree_.LeftChild(i)];
         int const cright = node_id_map_[current_tree_.RightChild(i)];
         current_tree_.SetChildren(i, cleft, cright);
+        orphaned[cleft] = false;
+        orphaned[cright] = false;
       }
+    }
+    auto itr = std::find(orphaned.begin(), orphaned.end(), true);
+    if (itr != orphaned.end()) {
+      auto orphaned_node_id = *itr;
+      for (auto [k, v] : node_id_map_) {
+        if (v == orphaned_node_id) {
+          TREELITE_LOG(FATAL) << "Node with key " << k << " is orphaned -- it cannot be reached "
+                              << "from the root node";
+        }
+      }
+      TREELITE_LOG(FATAL) << "Node at index " << orphaned_node_id << " is orphaned "
+                          << "-- it cannot be reached from the root node";
     }
 
     auto& trees = std::get<ModelPreset<ThresholdT, LeafOutputT>>(model_->variant_).trees;
@@ -136,9 +152,12 @@ class ModelBuilderImpl : public ModelBuilder {
     if (current_state_ != ModelBuilderState::kExpectNode) {
       TREELITE_LOG(FATAL) << "Unexpected call to StartNode()";
     }
+    TREELITE_CHECK_GE(node_key, 0) << "Node key cannot be negative";
 
     int node_id = current_tree_.AllocNode();
+    current_node_key_ = node_key;
     current_node_id_ = node_id;
+    TREELITE_CHECK_EQ(node_id_map_.count(node_key), 0) << "Key " << node_key << " is duplicated";
     node_id_map_[node_key] = node_id;
 
     current_state_ = ModelBuilderState::kExpectDetail;
@@ -148,7 +167,6 @@ class ModelBuilderImpl : public ModelBuilder {
     if (current_state_ != ModelBuilderState::kNodeComplete) {
       TREELITE_LOG(FATAL) << "Unexpected call to EndNode()";
     }
-    // TODO(hcho3): Add some validation logic
     current_state_ = ModelBuilderState::kExpectNode;
   }
 
@@ -157,6 +175,12 @@ class ModelBuilderImpl : public ModelBuilder {
     if (current_state_ != ModelBuilderState::kExpectDetail) {
       TREELITE_LOG(FATAL) << "Unexpected call to NumericalTest()";
     }
+    TREELITE_CHECK(left_child_key >= 0 && right_child_key >= 0) << "Node key cannot be negative";
+    TREELITE_CHECK(current_node_key_ != left_child_key && current_node_key_ != right_child_key)
+        << "Duplicated key " << current_node_key_ << " used by a child node";
+    TREELITE_CHECK_NE(left_child_key, right_child_key) << "Left and child nodes must be unique";
+    TREELITE_CHECK_LT(split_index, model_->num_feature)
+        << "split_index must be less than num_feature (" << model_->num_feature << ")";
 
     current_tree_.SetNumericalTest(current_node_id_, split_index, threshold, default_left, cmp);
     // Note: children IDs needs to be later translated into internal IDs
@@ -171,6 +195,12 @@ class ModelBuilderImpl : public ModelBuilder {
     if (current_state_ != ModelBuilderState::kExpectDetail) {
       TREELITE_LOG(FATAL) << "Unexpected call to CategoricalTest()";
     }
+    TREELITE_CHECK(left_child_key >= 0 && right_child_key >= 0) << "Node key cannot be negative";
+    TREELITE_CHECK(current_node_key_ != left_child_key && current_node_key_ != right_child_key)
+        << "Duplicated key " << current_node_key_ << " used by a child node";
+    TREELITE_CHECK_NE(left_child_key, right_child_key) << "Left and child nodes must be unique";
+    TREELITE_CHECK_LT(split_index, model_->num_feature)
+        << "split_index must be less than num_feature (" << model_->num_feature << ")";
 
     current_tree_.SetCategoricalTest(
         current_node_id_, split_index, default_left, category_list, category_list_right_child);
@@ -261,7 +291,8 @@ class ModelBuilderImpl : public ModelBuilder {
   std::unique_ptr<Model> model_;
   Tree<ThresholdT, LeafOutputT> current_tree_;
   std::map<int, int> node_id_map_;  // user-defined ID -> internal ID
-  int current_node_id_;
+  int current_node_key_;  // current node ID (user-defined)
+  int current_node_id_;  // current node ID (internal)
   ModelBuilderState current_state_;
 };
 
