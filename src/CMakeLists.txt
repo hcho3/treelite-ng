@@ -96,10 +96,6 @@ target_sources(objtreelite
     gtil/detail/threading_utils.h
     model_builder/metadata.cc
     model_builder/model_builder.cc
-    model_builder/detail/concrete_states.cc
-    model_builder/detail/concrete_states.h
-    model_builder/detail/state_machine.cc
-    model_builder/detail/state_machine.h
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
     model_loader/detail/common.h
