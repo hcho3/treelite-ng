@@ -239,8 +239,10 @@ inline std::unique_ptr<Model> Model::Create() {
 
 inline std::unique_ptr<Model> Model::Create(TypeInfo threshold_type, TypeInfo leaf_output_type) {
   std::unique_ptr<Model> model = std::make_unique<Model>();
-  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64);
-  TREELITE_CHECK(leaf_output_type == threshold_type);
+  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64)
+      << "threshold_type must be either float32 or float64";
+  TREELITE_CHECK(leaf_output_type == threshold_type)
+      << "threshold_type must be identical to leaf_output_type";
   int const target_variant_index = threshold_type == TypeInfo::kFloat64;
   model->variant_ = SetModelPresetVariant<0>(target_variant_index);
   return model;

@@ -23,7 +23,7 @@ TEST(GTIL, MulticlassClfGrovePerClass) {
   model_builder::PredTransformFunc pred_transform{"softmax"};
   std::vector<double> base_scores{0.0, 0.0, 0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+      = model_builder::InitializeModel(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
           tree_annotation, pred_transform, base_scores);
   for (int i = 0; i < 3; ++i) {
     builder->StartTree();

@@ -271,8 +271,10 @@ std::unique_ptr<ModelBuilder> InitializeModel(TypeInfo threshold_type, TypeInfo 
     Metadata const& metadata, TreeAnnotation const& tree_annotation,
     PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
     std::optional<std::string> const& attributes) {
-  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64);
-  TREELITE_CHECK(leaf_output_type == threshold_type);
+  TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64)
+      << "threshold_type must be either float32 or float64";
+  TREELITE_CHECK(leaf_output_type == threshold_type)
+      << "threshold_type must be identical to leaf_output_type";
   if (threshold_type == TypeInfo::kFloat32) {
     return std::make_unique<detail::ModelBuilderImpl<float, float>>(
         metadata, tree_annotation, pred_transform, base_scores, attributes);
