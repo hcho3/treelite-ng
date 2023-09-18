@@ -1,8 +1,8 @@
 /*!
  * Copyright (c) 2023 by Contributors
- * \file output_size.cc
+ * \file output_shape.cc
  * \author Hyunsu Cho
- * \brief Compute output size for GTIL, so that callers can allocate sufficient space
+ * \brief Compute output shape for GTIL, so that callers can allocate sufficient space
  *        to hold outputs.
  */
 #include <treelite/gtil.h>
@@ -14,7 +14,7 @@
 
 namespace treelite::gtil {
 
-std::vector<std::uint64_t> GetOutputSize(
+std::vector<std::uint64_t> GetOutputShape(
     Model const& model, std::uint64_t num_row, Configuration const& config) {
   auto const num_tree = model.GetNumTree();
   auto const max_num_class

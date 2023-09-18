@@ -29,6 +29,15 @@ template <typename ElemT>
 using Array2DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
 template <typename ElemT>
 using Array3DView = stdex::mdspan<ElemT, stdex::dextents<std::uint64_t, 3>, stdex::layout_right>;
+template <typename ElemT>
+using CArray1DView
+    = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 1>, stdex::layout_right>;
+template <typename ElemT>
+using CArray2DView
+    = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
+template <typename ElemT>
+using CArray3DView
+    = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 3>, stdex::layout_right>;
 
 template <typename InputT, typename ThresholdT>
 inline int NextNode(
@@ -163,9 +172,9 @@ void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tr
 }
 
 template <typename InputT>
-void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
     detail::threading_utils::ThreadConfig const& config) {
-  auto input_view = Array2DView<InputT>(input, num_row, model.num_feature);
+  auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
   auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
@@ -176,7 +185,7 @@ void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT
         std::size_t const num_tree = concrete_model.trees.size();
         for (std::uint64_t row_id = 0; row_id < num_row; ++row_id) {
           auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
-          static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>, "no");
+          static_assert(std::is_same_v<decltype(row), Array1DView<InputT const>>);
           for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
             auto const& tree = concrete_model.trees[tree_id];
             int const leaf_id = EvaluateTree(tree, row);
@@ -192,10 +201,10 @@ void PredictRaw(Model const& model, InputT* input, std::uint64_t num_row, InputT
 }
 
 template <typename InputT>
-void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+void PredictLeaf(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
     detail::threading_utils::ThreadConfig const& config) {
   auto const num_tree = model.GetNumTree();
-  auto input_view = Array2DView<InputT>(input, num_row, model.num_feature);
+  auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
   auto output_view = Array2DView<InputT>(output, num_row, num_tree);
   TREELITE_CHECK_EQ(output_view.size(), num_row * num_tree);
   std::visit(
@@ -203,7 +212,7 @@ void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, Input
         std::size_t const num_tree = concrete_model.trees.size();
         for (std::uint64_t row_id = 0; row_id < num_row; ++row_id) {
           auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
-          static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>, "no");
+          static_assert(std::is_same_v<decltype(row), CArray1DView<InputT>>, "no");
           for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
             auto const& tree = concrete_model.trees[tree_id];
             int const leaf_id = EvaluateTree(tree, row);
@@ -215,13 +224,13 @@ void PredictLeaf(Model const& model, InputT* input, std::uint64_t num_row, Input
 }
 
 template <typename InputT>
-void PredictScoreByTree(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
-    detail::threading_utils::ThreadConfig const& config) {
+void PredictScoreByTree(Model const& model, InputT const* input, std::uint64_t num_row,
+    InputT* output, detail::threading_utils::ThreadConfig const& config) {
   TREELITE_LOG(FATAL) << "Not implemented";
 }
 
 template <typename InputT>
-void Predict(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+void Predict(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
     Configuration const& config) {
   TypeInfo leaf_output_type = model.GetLeafOutputType();
   TypeInfo input_type = TypeInfoFromType<InputT>();
@@ -248,7 +257,9 @@ void Predict(Model const& model, InputT* input, std::uint64_t num_row, InputT* o
   }
 }
 
-template void Predict<float>(Model const&, float*, std::uint64_t, float*, Configuration const&);
-template void Predict<double>(Model const&, double*, std::uint64_t, double*, Configuration const&);
+template void Predict<float>(
+    Model const&, float const*, std::uint64_t, float*, Configuration const&);
+template void Predict<double>(
+    Model const&, double const*, std::uint64_t, double*, Configuration const&);
 
 }  // namespace treelite::gtil

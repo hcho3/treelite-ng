@@ -22,6 +22,24 @@ int TreeliteDumpAsJSON(TreeliteModelHandle handle, int pretty_print, char const*
   API_END();
 }
 
+int TreeliteGetInputType(TreeliteModelHandle model, char const** out_str) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  auto& type_str = treelite::c_api::ReturnValueStore::Get()->ret_str;
+  type_str = treelite::TypeInfoToString(model_->GetThresholdType());
+  *out_str = type_str.c_str();
+  API_END();
+}
+
+int TreeliteGetOutputType(TreeliteModelHandle model, char const** out_str) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  auto& type_str = treelite::c_api::ReturnValueStore::Get()->ret_str;
+  type_str = treelite::TypeInfoToString(model_->GetLeafOutputType());
+  *out_str = type_str.c_str();
+  API_END();
+}
+
 int TreeliteFreeModel(TreeliteModelHandle handle) {
   API_BEGIN();
   delete static_cast<treelite::Model*>(handle);

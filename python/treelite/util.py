@@ -3,6 +3,27 @@ Miscellaneous utilities
 """
 import ctypes
 
+import numpy as np
+
+_CTYPES_TYPE_TABLE = {
+    "uint32": ctypes.c_uint32,
+    "float32": ctypes.c_float,
+    "float64": ctypes.c_double,
+}
+
+
+_NUMPY_TYPE_TABLE = {"uint32": np.uint32, "float32": np.float32, "float64": np.float64}
+
+
+def typestr_to_ctypes_type(type_info):
+    """Obtain ctypes type corresponding to a given Type str"""
+    return _CTYPES_TYPE_TABLE[type_info]
+
+
+def typestr_to_numpy_type(type_info):
+    """Obtain ctypes type corresponding to a given Type str"""
+    return _NUMPY_TYPE_TABLE[type_info]
+
 
 def c_str(string):
     """Convert a Python string to C string"""

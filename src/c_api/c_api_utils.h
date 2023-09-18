@@ -9,7 +9,9 @@
 
 #include <treelite/thread_local.h>
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace treelite::c_api {
 
@@ -17,8 +19,8 @@ namespace treelite::c_api {
  *         store the object here and then return a pointer. The
  *         storage is thread-local static storage. */
 struct ReturnValueEntry {
-  /*! \brief result holder for returning string */
   std::string ret_str;
+  std::vector<std::uint64_t> ret_shape;
 };
 using ReturnValueStore = ThreadLocalStore<ReturnValueEntry>;
 

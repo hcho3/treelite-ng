@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ctypes
 import warnings
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from . import compat
 from .core import _LIB, _check_call
@@ -23,6 +23,25 @@ class Model:
 
     def __init__(self, *, handle: Optional[Any] = None):
         self._handle = handle
+        self.input_type = None
+        self.output_type = None
+        if handle is not None:
+            input_type = ctypes.c_char_p()
+            output_type = ctypes.c_char_p()
+            _check_call(_LIB.TreeliteGetInputType(handle, ctypes.byref(input_type)))
+            _check_call(_LIB.TreeliteGetOutputType(handle, ctypes.byref(output_type)))
+            self.input_type = py_str(input_type.value)
+            self.output_type = py_str(output_type.value)
+
+    def __del__(self):
+        if self.handle is not None:
+            _check_call(_LIB.TreeliteFreeModel(self._handle))
+            self._handle = None
+
+    @property
+    def handle(self):
+        """Access the handle to the associated C++ object"""
+        return self._handle
 
     @classmethod
     def load(
@@ -69,6 +88,52 @@ class Model:
                 )
             )
         raise NotImplementedError("Not implemented yet")
+
+    @classmethod
+    def from_xgboost(cls, booster: Any) -> Model:
+        """
+        Deprecated. Please use \ref ~treelite.frontend.from_xgboost instead.
+        Load a tree ensemble model from an XGBoost Booster object
+
+        Parameters
+        ----------
+        booster : Object of type :py:class:`xgboost.Booster`
+            Python handle to XGBoost model
+
+        Returns
+        -------
+        model :
+            Loaded model
+        """
+        return Model(handle=compat.from_xgboost(booster))
+
+    @classmethod
+    def from_xgboost_json(
+        cls,
+        model_json_str: Union[bytes, bytearray, str],
+        *,
+        allow_unknown_field: bool = False,
+    ) -> Model:
+        """
+        Load a tree ensemble model from a string containing XGBoost JSON
+
+        Parameters
+        ----------
+        model_json_str :
+            A string specifying an XGBoost model in the XGBoost JSON format
+        allow_unknown_field:
+            Whether to allow extra fields with unrecognized keys
+
+        Returns
+        -------
+        model
+            Loaded model
+        """
+        return Model(
+            handle=compat.from_xgboost_json(
+                model_json_str, allow_unknown_field=allow_unknown_field
+            )
+        )
 
     def dump_as_json(self, *, pretty_print: bool = True) -> str:
         """

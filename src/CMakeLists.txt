@@ -81,9 +81,10 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
-    c_api/c_api_utils.h
     c_api/c_api.cc
     c_api/c_api_error.cc
+    c_api/c_api_utils.h
+    c_api/gtil.cc
     c_api/logging.cc
     c_api/model.cc
     c_api/model_loader.cc
@@ -92,7 +93,7 @@ target_sources(objtreelite
     enum/tree_node_type.cc
     enum/typeinfo.cc
     gtil/config.cc
-    gtil/output_size.cc
+    gtil/output_shape.cc
     gtil/predict.cc
     model_builder/metadata.cc
     model_builder/model_builder.cc

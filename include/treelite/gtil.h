@@ -59,16 +59,16 @@ struct Configuration {
 };
 
 template <typename InputT>
-void Predict(Model const& model, InputT* input, std::uint64_t num_row, InputT* output,
+void Predict(Model const& model, InputT const* input, std::uint64_t num_row, InputT* output,
     Configuration const& config);
 
-std::vector<std::uint64_t> GetOutputSize(
+std::vector<std::uint64_t> GetOutputShape(
     Model const& model, std::uint64_t num_row, Configuration const& config);
 
 extern template void Predict<float>(
-    Model const&, float*, std::uint64_t, float*, Configuration const&);
+    Model const&, float const*, std::uint64_t, float*, Configuration const&);
 extern template void Predict<double>(
-    Model const&, double*, std::uint64_t, double*, Configuration const&);
+    Model const&, double const*, std::uint64_t, double*, Configuration const&);
 
 }  // namespace gtil
 }  // namespace treelite

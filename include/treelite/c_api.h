@@ -35,6 +35,8 @@
  */
 /*! \brief Handle to a decision tree ensemble model */
 typedef void* TreeliteModelHandle;
+/*! \brief Handle to a configuration of GTIL predictor */
+typedef void* TreeliteGTILConfigHandle;
 /*! \} */
 
 /*!
@@ -121,11 +123,83 @@ TREELITE_DLL int TreeliteLoadLightGBMModelFromString(
 TREELITE_DLL int TreeliteDumpAsJSON(
     TreeliteModelHandle handle, int pretty_print, char const** out_json_str);
 /*!
+ * \brief Query the input type of a Treelite model object
+ * \param model Treelite Model object
+ * \param out_str String representation of input type
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetInputType(TreeliteModelHandle model, char const** out_str);
+
+/*!
+ * \brief Query the output type of a Treelite model object
+ * \param model Treelite Model object
+ * \param out_str String representation of output type
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGetOutputType(TreeliteModelHandle model, char const** out_str);
+/*!
  * \brief Delete model from memory
  * \param handle Model to remove
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteFreeModel(TreeliteModelHandle handle);
+/*! \} */
+
+/*!
+ * \defgroup gtil General Tree Inference Library (GTIL), providing a reference implementation for
+ * predicting with decision trees. GTIL is useful in cases it is infeasible to build the
+ * tree models as native shared libs.
+ * \{
+ */
+
+/*!
+ * \brief Load a configuration for GTIL predictor from a JSON string.
+ * \param config_json a JSON string with the following fields:
+ *   - "nthread" (optional): Number of threads used for initializing DMatrix.
+ *                           Set <= 0 to use all CPU cores.
+ *   - "predict_type" (required): Must be one of the following.
+ *     - "default": Sum over trees and apply post-processing
+ *     - "raw": Sum over trees, but don't apply post-processing; get raw margin scores instead.
+ *     - "leaf_id": Output one (integer) leaf ID per tree.
+ *     - "score_per_tree": Output one or more margin scores per tree.
+ * \param out Parsed configuration
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILParseConfig(char const* config_json, TreeliteGTILConfigHandle* out);
+
+/*!
+ * \brief Delete a GTIL configuration from memory
+ * \param handle Handle to the GTIL configuration to be deleted
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILDeleteConfig(TreeliteGTILConfigHandle handle);
+
+/*!
+ * \brief Given a batch of data rows, query the necessary shape of array to hold predictions for all
+ *        data points.
+ * \param model Treelite Model object
+ * \param num_row Number of rows in the input
+ * \param config Configuration of GTIL predictor. Set this by calling \ref TreeliteGTILParseConfig.
+ * \param out_shape Array of dimensions
+ * \param out_ndim Number of dimensions in out_shape
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILGetOutputShape(TreeliteModelHandle model, uint64_t num_row,
+    TreeliteGTILConfigHandle config, uint64_t const** out, uint64_t* out_ndim);
+
+/*!
+ * \brief Predict with a 2D dense array
+ * \param model Treelite Model object
+ * \param input The 2D data array, laid out in row-major layout
+ * \param num_row Number of rows in the data matrix.
+ * \param output Pointer to buffer to store the output. Call \ref TreeliteGTILGetOutputShape to get
+ *               the amount of buffer you should allocate for this parameter.
+ * \param config Configuration of GTIL predictor. Set this by calling \ref TreeliteGTILParseConfig.
+ * \return 0 for success; -1 for failure
+ */
+TREELITE_DLL int TreeliteGTILPredict(TreeliteModelHandle model, void const* input,
+    char const* input_type, uint64_t num_row, void* output, TreeliteGTILConfigHandle config);
+
 /*! \} */
 
 /*!

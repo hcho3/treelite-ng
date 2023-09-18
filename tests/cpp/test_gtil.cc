@@ -57,9 +57,9 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
      "nthread": 1
   }})",
       GetParam()));  // TODO(hcho3): Add test for default prediction
-  auto output_size = gtil::GetOutputSize(*model, 1, config);
-  auto const expected_output_size = std::vector<std::uint64_t>{1, 3};
-  EXPECT_EQ(output_size, expected_output_size);
+  auto output_shape = gtil::GetOutputShape(*model, 1, config);
+  auto const expected_output_shape = std::vector<std::uint64_t>{1, 3};
+  EXPECT_EQ(output_shape, expected_output_shape);
 
   std::vector<float> output(3);
   {
