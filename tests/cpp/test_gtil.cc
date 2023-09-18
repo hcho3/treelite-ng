@@ -29,7 +29,7 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   model_builder::PredTransformFunc pred_transform{"softmax"};
   std::vector<double> base_scores{0.0, 0.0, 0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
   auto make_tree_stump = [&](float left_child_val, float right_child_val) {
     builder->StartTree();

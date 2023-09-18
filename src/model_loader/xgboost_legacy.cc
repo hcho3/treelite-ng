@@ -452,7 +452,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   treelite::model_builder::Metadata metadata{num_feature, task_type, average_tree_output,
       num_target, std::vector<std::uint32_t>(num_target, static_cast<std::uint32_t>(num_class)),
       leaf_vector_shape};
-  treelite::model_builder::TreeAnnotation tree_anntation{num_tree, target_id, class_id};
+  treelite::model_builder::TreeAnnotation tree_annotation{num_tree, target_id, class_id};
 
   // Set base scores. For now, XGBoost only supports a scalar base score for all targets / classes.
   auto base_score = static_cast<double>(mparam_.base_score);
@@ -466,8 +466,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   std::size_t const len_base_scores = num_target * num_class;
   std::vector<double> base_scores(len_base_scores, base_score);
 
-  auto builder = treelite::model_builder::InitializeModel(treelite::TypeInfo::kFloat32,
-      treelite::TypeInfo::kFloat32, metadata, tree_anntation, pred_transform, base_scores);
+  auto builder = treelite::model_builder::GetModelBuilder(treelite::TypeInfo::kFloat32,
+      treelite::TypeInfo::kFloat32, metadata, tree_annotation, pred_transform, base_scores);
 
   /* 3. Build trees */
   for (int tree_id = 0; tree_id < xgb_trees_.size(); ++tree_id) {

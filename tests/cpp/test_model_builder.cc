@@ -23,7 +23,7 @@ TEST(ModelBuilder, OrphanedNodes) {
   model_builder::PredTransformFunc pred_transform{"softmax"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
   builder->StartTree();
   builder->StartNode(0);
@@ -41,7 +41,7 @@ TEST(ModelBuilder, InvalidNodeID) {
   model_builder::PredTransformFunc pred_transform{"softmax"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
   builder->StartTree();
   EXPECT_THROW(builder->StartNode(-1), Error);
@@ -59,7 +59,7 @@ TEST(ModelBuilder, InvalidState) {
   model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
   std::vector<double> base_scores{0.0, 0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::InitializeModel(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
   builder->StartTree();
   EXPECT_THROW(builder->StartTree(), Error);
@@ -128,7 +128,7 @@ TEST(ModelBuilder, NodeMapping) {
   detail::threading_utils::ParallelFor(
       0, n_trial, config, detail::threading_utils::ParallelSchedule::Static(), [&](int i, int) {
         std::unique_ptr<model_builder::ModelBuilder> builder
-            = model_builder::InitializeModel(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
+            = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
                 tree_annotation, pred_transform, base_scores);
         builder->StartTree();
         builder->StartNode(0 + i * 2);

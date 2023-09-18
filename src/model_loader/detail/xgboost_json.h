@@ -228,8 +228,8 @@ class OutputHandler : public BaseHandler {
    * \param parent_delegator pointer to Delegator for this handler
    * \param output the object to be modified during parsing
    */
-  OutputHandler(std::weak_ptr<Delegator> parent_delegator, OutputType& output_param)
-      : BaseHandler{parent_delegator}, output{output_param} {};
+  OutputHandler(std::weak_ptr<Delegator> parent_delegator, OutputType& output)
+      : BaseHandler{parent_delegator}, output{output} {};
   OutputHandler(std::weak_ptr<Delegator> parent_delegator, OutputType&& output) = delete;
 
  protected:
@@ -237,7 +237,7 @@ class OutputHandler : public BaseHandler {
   OutputType& output;
 };
 
-/*! \brief handler for array of objects of given type*/
+/*! \brief handler for array of objects of given type */
 template <typename ElemType, typename HandlerType = BaseHandler>
 class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
  public:
@@ -339,12 +339,13 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 };
 
 struct ParsedXGBoostModel {
-  std::unique_ptr<treelite::model_builder::ModelBuilder> builder;
-  std::uint32_t num_tree;
-  std::vector<unsigned> version;
-  std::vector<int> tree_info;
-  std::string objective_name;
-  int size_leaf_vector;
+  std::unique_ptr<treelite::model_builder::ModelBuilder> builder{};
+  std::uint32_t num_tree{0};
+  std::vector<unsigned> version{};
+  std::vector<int> tree_info{};
+  std::string objective_name{};
+  int size_leaf_vector{0};
+  std::vector<float> weight_drop{};
 };
 
 struct ParsedRegTreeParams {
@@ -363,10 +364,14 @@ class TreeParamHandler : public OutputHandler<ParsedRegTreeParams> {
   bool is_recognized_key(std::string const& key) override;
 };
 
-/*! \brief handler for RegTree objects from XGBoost schema*/
-class RegTreeHandler : public OutputHandler<treelite::Tree<float, float>> {
+/*! \brief handler for RegTree objects from XGBoost schema */
+class RegTreeHandler : public OutputHandler<ParsedRegTreeParams> {
  public:
-  using OutputHandler<treelite::Tree<float, float>>::OutputHandler;
+  RegTreeHandler(std::weak_ptr<Delegator> parent_delegator, ParsedRegTreeParams& output,
+      model_builder::ModelBuilder& model_builder)
+      : OutputHandler{parent_delegator, output}, model_builder{model_builder} {}
+  RegTreeHandler(std::weak_ptr<Delegator> parent_delegator, ParsedRegTreeParams&& output) = delete;
+
   bool StartArray() override;
   bool StartObject() override;
   bool Uint(unsigned u) override;
@@ -390,11 +395,35 @@ class RegTreeHandler : public OutputHandler<treelite::Tree<float, float>> {
   std::vector<int> categories;
   std::vector<float> split_conditions;
   std::vector<bool> default_left;
-  ParsedRegTreeParams reg_tree_params;
+  model_builder::ModelBuilder& model_builder;
+};
+
+/*! \brief Handler for array of objects of Tree type */
+class RegTreeArrayHandler : public OutputHandler<std::vector<ParsedRegTreeParams>> {
+ public:
+  RegTreeArrayHandler(std::weak_ptr<Delegator> parent_delegator,
+      std::vector<ParsedRegTreeParams>& output, model_builder::ModelBuilder& model_builder)
+      : OutputHandler{parent_delegator, output}, model_builder{model_builder} {}
+  RegTreeArrayHandler(
+      std::weak_ptr<Delegator> parent_delegator, std::vector<ParsedRegTreeParams>&& output)
+      = delete;
+
+  bool StartObject() override {
+    if (this->should_ignore_upcoming_value()) {
+      return this->template push_handler<IgnoreHandler>();
+    }
+    this->output.emplace_back();
+    return this->template push_handler<RegTreeHandler, ParsedRegTreeParams>(
+        this->output.back(), model_builder);
+  }
+
+ private:
+  model_builder::ModelBuilder& model_builder;
 };
 
 /*! \brief handler for GBTreeModel objects from XGBoost schema*/
 class GBTreeModelHandler : public OutputHandler<ParsedXGBoostModel> {
+ public:
   using OutputHandler<ParsedXGBoostModel>::OutputHandler;
   bool StartArray() override;
   bool StartObject() override;
@@ -402,6 +431,9 @@ class GBTreeModelHandler : public OutputHandler<ParsedXGBoostModel> {
 
  protected:
   bool is_recognized_key(std::string const& key) override;
+
+ private:
+  std::vector<ParsedRegTreeParams> reg_tree_params;
 };
 
 /*! \brief handler for GradientBoosterHandler objects from XGBoost schema*/
@@ -555,7 +587,8 @@ class DelegatedHandler :
  private:
   explicit DelegatedHandler(rapidjson::Document const& handler_config)
       : delegates{},
-        result{model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32), {}, {}, ""},
+        result{
+            model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32), 0, {}, {}, ""},
         handler_config_{handler_config} {}
 
   std::stack<std::shared_ptr<BaseHandler>> delegates;

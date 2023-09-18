@@ -85,7 +85,7 @@ class ModelBuilderImpl : public ModelBuilder {
         current_node_key_{},
         current_node_id_{},
         current_state_{ModelBuilderState::kExpectTree},
-        metadata_initialized_{true} {
+        metadata_initialized_{false} {
     InitializeMetadataImpl(metadata, tree_annotation, pred_transform, base_scores, attributes);
   }
 
@@ -284,7 +284,7 @@ class ModelBuilderImpl : public ModelBuilder {
 
   void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
-      std::string const& attributes) override {
+      std::optional<std::string> const& attributes) override {
     InitializeMetadataImpl(metadata, tree_annotation, pred_transform, base_scores, attributes);
   }
 
@@ -370,6 +370,8 @@ class ModelBuilderImpl : public ModelBuilder {
     if (attributes) {
       model_->attributes = attributes.value();
     }
+
+    metadata_initialized_ = true;
   }
 };
 
