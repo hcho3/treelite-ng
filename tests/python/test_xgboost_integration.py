@@ -255,7 +255,9 @@ def test_xgb_categorical_split(in_memory):
         )
 
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
-    expected_pred = load_txt(dataset_db[dataset].expected_margin)
+    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape(
+        (X.shape[0], -1)
+    )
     out_pred = treelite.gtil.predict(tl_model, X.toarray(), pred_margin=True)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -295,7 +297,9 @@ def test_xgb_dart(dataset, model_format, num_boost_round):
         else:
             tl_model = treelite.Model.from_xgboost(xgb_model)
         out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
-        expected_pred = xgb_model.predict(dtrain, output_margin=True)
+        expected_pred = xgb_model.predict(dtrain, output_margin=True).reshape(
+            (X.shape[0], -1)
+        )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 

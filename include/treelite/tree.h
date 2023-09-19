@@ -238,7 +238,7 @@ class Tree {
       // The node might be a numerical split
       return {};
     }
-    return {&category_list_[offset_begin], &category_list_[offset_end]};
+    return std::vector<std::uint32_t>(&category_list_[offset_begin], &category_list_[offset_end]);
     // Use unsafe access here, since we may need to take the address of one past the last
     // element, to follow with the range semantic of std::vector<>.
   }

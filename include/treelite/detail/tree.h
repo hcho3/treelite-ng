@@ -146,7 +146,7 @@ template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalTest(int nid,
     std::int32_t split_index, bool default_left, std::vector<std::uint32_t> const& category_list,
     bool category_list_right_child) {
-  TREELITE_CHECK(!CategoryList(nid).empty()) << "Cannot set leaf vector twice for same node";
+  TREELITE_CHECK(CategoryList(nid).empty()) << "Cannot set leaf vector twice for same node";
 
   const std::size_t begin = category_list_.Size();
   const std::size_t end = begin + category_list.size();

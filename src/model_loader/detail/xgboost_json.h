@@ -465,11 +465,11 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 };
 
 struct ParsedLearnerParams {
-  float base_score;
-  int num_class;
-  int num_feature;
-  std::uint32_t num_target;
-  bool boost_from_average;
+  float base_score{0.0};
+  int num_class{1};
+  int num_feature{0};
+  std::uint32_t num_target{1};
+  bool boost_from_average{false};
 };
 
 /*! \brief handler for LearnerParam objects from XGBoost schema*/
