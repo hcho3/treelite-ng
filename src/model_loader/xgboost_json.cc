@@ -398,10 +398,14 @@ bool GBTreeModelHandler::StartObject() {
 
 bool GBTreeModelHandler::EndObject(std::size_t) {
   if (!reg_tree_params.empty()) {
+    output.num_tree = static_cast<std::uint32_t>(reg_tree_params.size());
     output.size_leaf_vector = reg_tree_params[0].size_leaf_vector;
     for (ParsedRegTreeParams const& e : reg_tree_params) {
       TREELITE_CHECK_EQ(e.size_leaf_vector, output.size_leaf_vector)
           << "We currently don't support loading model whose trees have different output size";
+    }
+    if (output.size_leaf_vector == 0) {
+      output.size_leaf_vector = 1;  // In XGBoost, size_leaf_vector=0 indicates a scalar output
     }
   }
   return pop_handler();
@@ -561,6 +565,7 @@ bool LearnerHandler::EndObject(std::size_t) {
     num_class = std::vector<std::uint32_t>{static_cast<std::uint32_t>(learner_params.num_class)};
     task_type = TaskType::kMultiClf;
     target_id = std::vector<std::int32_t>(num_tree, 0);
+    TREELITE_CHECK_GT(output.size_leaf_vector, 0);
     if (output.size_leaf_vector > 1) {
       // Vector-leaf output
       class_id = std::vector<std::int32_t>(num_tree, -1);

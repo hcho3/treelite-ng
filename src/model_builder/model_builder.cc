@@ -76,9 +76,8 @@ class ModelBuilderImpl : public ModelBuilder {
   ModelBuilderImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
       PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes)
-      : expected_num_tree_{tree_annotation.num_tree},
-        expected_leaf_size_{std::accumulate(metadata.leaf_vector_shape.begin(),
-            metadata.leaf_vector_shape.end(), std::uint32_t(1), std::multiplies<>{})},
+      : expected_num_tree_{},
+        expected_leaf_size_{},
         model_{Model::Create<ThresholdT, LeafOutputT>()},
         current_tree_{},
         node_id_map_{},
@@ -371,6 +370,9 @@ class ModelBuilderImpl : public ModelBuilder {
       model_->attributes = attributes.value();
     }
 
+    expected_num_tree_ = tree_annotation.num_tree;
+    expected_leaf_size_ = std::accumulate(metadata.leaf_vector_shape.begin(),
+        metadata.leaf_vector_shape.end(), std::uint32_t(1), std::multiplies<>{});
     metadata_initialized_ = true;
   }
 };

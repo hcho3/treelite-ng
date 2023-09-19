@@ -46,10 +46,12 @@ Metadata::Metadata(std::int32_t num_feature, TaskType task_type, bool average_tr
     TREELITE_LOG(FATAL) << "All elements in num_class field must be at least 1.";
   }
   TREELITE_CHECK(leaf_vector_shape[0] == 1 || leaf_vector_shape[0] == num_target)
-      << "leaf_vector_shape[0] must be either 1 or num_target (" << num_target << ")";
+      << "leaf_vector_shape[0] must be either 1 or num_target (" << num_target << "). "
+      << "Currently given: leaf_vector_shape[1] = " << leaf_vector_shape[1];
   const std::uint32_t max_num_class = *std::max_element(num_class.begin(), num_class.end());
   TREELITE_CHECK(leaf_vector_shape[1] == 1 || leaf_vector_shape[1] == max_num_class)
-      << "leaf_vector_shape[1] must be either 1 or max_num_class (" << max_num_class << ")";
+      << "leaf_vector_shape[1] must be either 1 or max_num_class (" << max_num_class << "). "
+      << "Currently given: leaf_vector_shape[1] = " << leaf_vector_shape[1];
 }
 
 }  // namespace treelite::model_builder

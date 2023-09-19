@@ -152,8 +152,8 @@ def test_xgb_multiclass_classifier(
         expected_num_tree = num_class * num_boost_round * num_parallel_tree
         assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 
-        out_pred = treelite.gtil.predict(tl_model, X_test)
-        expected_pred = xgb_model.predict(dtest)
+        out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+        expected_pred = xgb_model.predict(dtest, output_margin=True)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -211,8 +211,8 @@ def test_xgb_nonlinear_objective(
             model_format=("xgboost_json" if model_format == "json" else "xgboost"),
         )
 
-        out_pred = treelite.gtil.predict(tl_model, X)
-        expected_pred = xgb_model.predict(dtrain)
+        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
+        expected_pred = xgb_model.predict(dtrain, output_margin=True)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -230,7 +230,7 @@ def test_xgb_categorical_split(in_memory):
 
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
     expected_pred = load_txt(dataset_db[dataset].expected_margin)
-    out_pred = treelite.gtil.predict(tl_model, X.toarray())
+    out_pred = treelite.gtil.predict(tl_model, X.toarray(), pred_margin=True)
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -268,8 +268,8 @@ def test_xgb_dart(dataset, model_format, num_boost_round):
             )
         else:
             tl_model = treelite.Model.from_xgboost(xgb_model)
-        out_pred = treelite.gtil.predict(tl_model, X)
-        expected_pred = xgb_model.predict(dtrain)
+        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
+        expected_pred = xgb_model.predict(dtrain, output_margin=True)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
