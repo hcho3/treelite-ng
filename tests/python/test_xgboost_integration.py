@@ -32,8 +32,30 @@ except ImportError:
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
 
 
+def generate_data_for_squared_log_error():
+    """Generate data containing outliers."""
+    n_rows = 4096
+    n_cols = 16
+
+    outlier_mean = 10000  # mean of generated outliers
+    n_outliers = 64
+
+    X = np.random.randn(n_rows, n_cols)
+    y = np.random.randn(n_rows)
+    y += np.abs(np.min(y))
+
+    # Create outliers
+    for _ in range(0, n_outliers):
+        ind = np.random.randint(0, len(y) - 1)
+        y[ind] += np.random.randint(0, outlier_mean)
+
+    # rmsle requires all label be greater than -1.
+    assert np.all(y > -1.0)
+
+    return X, y
+
+
 @given(
-    dataset=standard_regression_datasets(),
     objective=sampled_from(
         [
             "reg:linear",
@@ -45,16 +67,18 @@ except ImportError:
     model_format=sampled_from(["binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
     num_parallel_tree=integers(min_value=1, max_value=5),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
 def test_xgb_regression(
-    dataset, objective, model_format, num_boost_round, num_parallel_tree
+    objective, model_format, num_boost_round, num_parallel_tree, callback
 ):
     # pylint: disable=too-many-locals
     """Test XGBoost with regression data"""
-    X, y = dataset
     if objective == "reg:squaredlogerror":
-        y = np.where(y <= -1, -0.9, y)
+        X, y = generate_data_for_squared_log_error()
+    else:
+        X, y = callback.draw(standard_regression_datasets())
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )
