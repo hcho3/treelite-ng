@@ -198,6 +198,15 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
         }
       },
       model.variant_);
+  auto base_score_view
+      = CArray2DView<double>(model.base_scores.Data(), model.num_target, max_num_class);
+  for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
+    for (std::uint64_t row_id = 0; row_id < num_row; ++row_id) {
+      for (std::uint32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+        output_view(target_id, row_id, class_id) += base_score_view(target_id, class_id);
+      }
+    }
+  }
 }
 
 template <typename InputT>
