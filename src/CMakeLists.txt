@@ -94,6 +94,8 @@ target_sources(objtreelite
     enum/typeinfo.cc
     gtil/config.cc
     gtil/output_shape.cc
+    gtil/pred_transform.cc
+    gtil/pred_transform.h
     gtil/predict.cc
     model_builder/metadata.cc
     model_builder/model_builder.cc

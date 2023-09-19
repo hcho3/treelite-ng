@@ -1,5 +1,5 @@
 """Tests for XGBoost integration"""
-# pylint: disable=R0201, R0915
+# pylint: disable=R0201, R0915, R0913
 import json
 import os
 
@@ -55,26 +55,33 @@ def generate_data_for_squared_log_error():
     return X, y
 
 
+@pytest.mark.parametrize(
+    "objective",
+    [
+        "reg:linear",
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ],
+)
 @given(
-    objective=sampled_from(
-        [
-            "reg:linear",
-            "reg:squarederror",
-            "reg:squaredlogerror",
-            "reg:pseudohubererror",
-        ]
-    ),
     model_format=sampled_from(["binary", "json"]),
+    pred_margin=sampled_from([True, False]),
     num_boost_round=integers(min_value=5, max_value=50),
     num_parallel_tree=integers(min_value=1, max_value=5),
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
 def test_xgb_regression(
-    objective, model_format, num_boost_round, num_parallel_tree, callback
+    objective, model_format, pred_margin, num_boost_round, num_parallel_tree, callback
 ):
     # pylint: disable=too-many-locals
     """Test XGBoost with regression data"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
     if objective == "reg:squaredlogerror":
         X, y = generate_data_for_squared_log_error()
     else:
@@ -113,8 +120,8 @@ def test_xgb_regression(
             == num_boost_round * num_parallel_tree
         )
 
-        out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
-        expected_pred = xgb_model.predict(dtest, output_margin=True).reshape(
+        out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=pred_margin)
+        expected_pred = xgb_model.predict(dtest, output_margin=pred_margin).reshape(
             (X_test.shape[0], -1)
         )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
@@ -125,13 +132,14 @@ def test_xgb_regression(
         n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
     ),
     objective=sampled_from(["multi:softmax", "multi:softprob"]),
+    pred_margin=sampled_from([True, False]),
     model_format=sampled_from(["binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
     num_parallel_tree=integers(min_value=1, max_value=5),
 )
 @settings(**standard_settings())
 def test_xgb_multiclass_classifier(
-    dataset, objective, model_format, num_boost_round, num_parallel_tree
+    dataset, objective, pred_margin, model_format, num_boost_round, num_parallel_tree
 ):
     # pylint: disable=too-many-locals
     """Test XGBoost with Iris data (multi-class classification)"""
@@ -172,8 +180,12 @@ def test_xgb_multiclass_classifier(
         expected_num_tree = num_class * num_boost_round * num_parallel_tree
         assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 
-        out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
-        expected_pred = xgb_model.predict(dtest, output_margin=True)
+        if objective == "multi:softmax" and not pred_margin:
+            out_pred = treelite.gtil.predict_leaf(tl_model, X_test)
+            expected_pred = xgb_model.predict(dtest, pred_leaf=True)
+        else:
+            out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=pred_margin)
+            expected_pred = xgb_model.predict(dtest, output_margin=pred_margin)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 
@@ -189,13 +201,14 @@ def test_xgb_multiclass_classifier(
             ("rank:map", 2),
         ],
     ),
+    pred_margin=sampled_from([True, False]),
     model_format=sampled_from(["binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
 def test_xgb_nonlinear_objective(
-    objective_pair, model_format, num_boost_round, callback
+    objective_pair, pred_margin, model_format, num_boost_round, callback
 ):
     # pylint: disable=too-many-locals
     """Test XGBoost with non-linear objectives with synthetic data"""
@@ -231,8 +244,8 @@ def test_xgb_nonlinear_objective(
         else:
             tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
 
-        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
-        expected_pred = xgb_model.predict(dtrain, output_margin=True).reshape(
+        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=pred_margin)
+        expected_pred = xgb_model.predict(dtrain, output_margin=pred_margin).reshape(
             (X.shape[0], -1)
         )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)

@@ -14,6 +14,7 @@
 #include <treelite/model_builder.h>
 #include <treelite/tree.h>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <numeric>
@@ -60,13 +61,23 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
      "nthread": 1
   }})",
       predict_kind));
-  // TODO(hcho3): Add test for default prediction
 
   std::vector<std::uint64_t> expected_output_shape;
   std::vector<std::vector<float>> expected_output;
   if (predict_kind == "raw") {
     expected_output_shape = {1, 3};
     expected_output = {{1.0f, -2.0f, 2.0f}, {-2.0f, 1.0f, 1.0f}};
+  } else if (predict_kind == "default") {
+    expected_output_shape = {1, 3};
+    auto softmax = [](float a, float b, float c) {
+      float const max = std::max({a, b, c});
+      a -= max;
+      b -= max;
+      c -= max;
+      float const sum = std::exp(a) + std::exp(b) + std::exp(c);
+      return std::vector<float>{std::exp(a) / sum, std::exp(b) / sum, std::exp(c) / sum};
+    };
+    expected_output = {softmax(1.0f, -2.0f, 2.0f), softmax(-2.0f, 1.0f, 1.0f)};
   } else if (predict_kind == "leaf_id") {
     expected_output_shape = {1, 6};
     expected_output = {{2, 2, 2, 2, 2, 2}, {1, 1, 1, 1, 1, 1}};
@@ -88,6 +99,6 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(/* no prefix */, GTIL, testing::Values("raw", "leaf_id"));
+INSTANTIATE_TEST_SUITE_P(/* no prefix */, GTIL, testing::Values("raw", "default", "leaf_id"));
 
 }  // namespace treelite

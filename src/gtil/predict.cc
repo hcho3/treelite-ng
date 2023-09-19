@@ -19,6 +19,9 @@
 #include <type_traits>
 #include <variant>
 
+#include "./pred_transform.h"
+#include "pred_transform.h"
+
 namespace treelite::gtil {
 
 namespace stdex = std::experimental;
@@ -187,7 +190,7 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
         detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
             detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
               auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
-              static_assert(std::is_same_v<decltype(row), Array1DView<InputT const>>);
+              static_assert(std::is_same_v<decltype(row), CArray1DView<InputT>>);
               for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
                 auto const& tree = concrete_model.trees[tree_id];
                 int const leaf_id = EvaluateTree(tree, row);
@@ -205,11 +208,31 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
   auto base_score_view
       = CArray2DView<double>(model.base_scores.Data(), model.num_target, max_num_class);
   for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
-    for (std::uint64_t row_id = 0; row_id < num_row; ++row_id) {
-      for (std::uint32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-        output_view(target_id, row_id, class_id) += base_score_view(target_id, class_id);
-      }
-    }
+    detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+        detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+          for (std::uint32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+            output_view(target_id, row_id, class_id) += base_score_view(target_id, class_id);
+          }
+        });
+  }
+}
+
+template <typename InputT>
+void ApplyPredTransform(Model const& model, InputT* output, std::uint64_t num_row,
+    Configuration const& pred_config, detail::threading_utils::ThreadConfig const& thread_config) {
+  auto pred_transform_func = gtil::GetPredTransformFunc<InputT>(model.pred_transform);
+  auto max_num_class
+      = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
+  auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+
+  for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
+    std::uint32_t const num_class = model.num_class[target_id];
+    detail::threading_utils::ParallelFor(std::size_t(0), num_row, thread_config,
+        detail::threading_utils::ParallelSchedule::Static(), [&](std::size_t row_id, int) {
+          auto row = stdex::submdspan(output_view, target_id, row_id, stdex::full_extent);
+          static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>);
+          pred_transform_func(model, num_class, row.data_handle());
+        });
   }
 }
 
@@ -259,7 +282,8 @@ void Predict(Model const& model, InputT const* input, std::uint64_t num_row, Inp
   }
   auto thread_config = detail::threading_utils::ThreadConfig(config.nthread);
   if (config.pred_type == PredictKind::kPredictDefault) {
-    TREELITE_LOG(FATAL) << "Not implemented";
+    PredictRaw(model, input, num_row, output, thread_config);
+    ApplyPredTransform(model, output, num_row, config, thread_config);
   } else if (config.pred_type == PredictKind::kPredictRaw) {
     PredictRaw(model, input, num_row, output, thread_config);
   } else if (config.pred_type == PredictKind::kPredictLeafID) {
