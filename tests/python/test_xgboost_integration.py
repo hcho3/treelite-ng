@@ -91,8 +91,10 @@ def test_xgb_regression(
             == num_boost_round * num_parallel_tree
         )
 
-        out_pred = treelite.gtil.predict(tl_model, X_test)
-        expected_pred = xgb_model.predict(dtest)
+        out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=True)
+        expected_pred = xgb_model.predict(dtest, output_margin=True).reshape(
+            (X_test.shape[0], -1)
+        )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
 

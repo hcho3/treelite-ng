@@ -185,6 +185,7 @@ def _predict_impl(model: Model, data: np.ndarray, *, config: GTILConfig) -> np.n
             data.ctypes.data_as(
                 ctypes.POINTER(typestr_to_ctypes_type(model.input_type))
             ),
+            c_str(model.input_type),
             ctypes.c_size_t(data.shape[0]),
             out_result.ctypes.data_as(
                 ctypes.POINTER(typestr_to_ctypes_type(model.output_type))
