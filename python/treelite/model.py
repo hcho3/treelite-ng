@@ -25,6 +25,8 @@ class Model:
         self._handle = handle
         self.input_type = None
         self.output_type = None
+        self.num_tree = None
+        self.num_feature = None
         if handle is not None:
             input_type = ctypes.c_char_p()
             output_type = ctypes.c_char_p()
@@ -32,6 +34,12 @@ class Model:
             _check_call(_LIB.TreeliteGetOutputType(handle, ctypes.byref(output_type)))
             self.input_type = py_str(input_type.value)
             self.output_type = py_str(output_type.value)
+            num_tree = ctypes.c_size_t()
+            num_feature = ctypes.c_int()
+            _check_call(_LIB.TreeliteQueryNumTree(handle, ctypes.byref(num_tree)))
+            _check_call(_LIB.TreeliteQueryNumFeature(handle, ctypes.byref(num_feature)))
+            self.num_tree = num_tree.value
+            self.num_feature = num_feature.value
 
     def __del__(self):
         if self.handle is not None:

@@ -40,6 +40,20 @@ int TreeliteGetOutputType(TreeliteModelHandle model, char const** out_str) {
   API_END();
 }
 
+int TreeliteQueryNumTree(TreeliteModelHandle model, size_t* out) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  *out = model_->GetNumTree();
+  API_END();
+}
+
+int TreeliteQueryNumFeature(TreeliteModelHandle model, int* out) {
+  API_BEGIN();
+  auto const* model_ = static_cast<treelite::Model const*>(model);
+  *out = model_->num_feature;
+  API_END();
+}
+
 int TreeliteFreeModel(TreeliteModelHandle handle) {
   API_BEGIN();
   delete static_cast<treelite::Model*>(handle);

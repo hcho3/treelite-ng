@@ -14,8 +14,9 @@
 #include <treelite/model_builder.h>
 #include <treelite/tree.h>
 
+#include <functional>
 #include <memory>
-#include <sstream>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -51,31 +52,42 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   make_tree_stump(0.0f, -1.0f);
   make_tree_stump(0.5f, 1.5f);
 
+  auto const predict_kind = GetParam();
+
   std::unique_ptr<Model> model = builder->CommitModel();
   gtil::Configuration config(fmt::format(R"({{
      "predict_type": "{}",
      "nthread": 1
   }})",
-      GetParam()));  // TODO(hcho3): Add test for default prediction
+      predict_kind));
+  // TODO(hcho3): Add test for default prediction
+
+  std::vector<std::uint64_t> expected_output_shape;
+  std::vector<std::vector<float>> expected_output;
+  if (predict_kind == "raw") {
+    expected_output_shape = {1, 3};
+    expected_output = {{1.0f, -2.0f, 2.0f}, {-2.0f, 1.0f, 1.0f}};
+  } else if (predict_kind == "leaf_id") {
+    expected_output_shape = {1, 6};
+    expected_output = {{2, 2, 2, 2, 2, 2}, {1, 1, 1, 1, 1, 1}};
+  }
   auto output_shape = gtil::GetOutputShape(*model, 1, config);
-  auto const expected_output_shape = std::vector<std::uint64_t>{1, 3};
   EXPECT_EQ(output_shape, expected_output_shape);
 
-  std::vector<float> output(3);
+  std::vector<float> output(std::accumulate(
+      output_shape.begin(), output_shape.end(), std::uint64_t(1), std::multiplies<>()));
   {
     std::vector<float> input{1.0f};
     gtil::Predict(*model, input.data(), 1, output.data(), config);
-    std::vector<float> const& expected_output{1.0f, -2.0f, 2.0f};
-    EXPECT_EQ(output, expected_output);
+    EXPECT_EQ(output, expected_output[0]);
   }
   {
     std::vector<float> input{-1.0f};
     gtil::Predict(*model, input.data(), 1, output.data(), config);
-    std::vector<float> const& expected_output{-2.0f, 1.0f, 1.0f};
-    EXPECT_EQ(output, expected_output);
+    EXPECT_EQ(output, expected_output[1]);
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(/* no prefix */, GTIL, testing::Values("raw"));
+INSTANTIATE_TEST_SUITE_P(/* no prefix */, GTIL, testing::Values("raw", "leaf_id"));
 
 }  // namespace treelite

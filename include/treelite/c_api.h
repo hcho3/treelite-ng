@@ -129,7 +129,6 @@ TREELITE_DLL int TreeliteDumpAsJSON(
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGetInputType(TreeliteModelHandle model, char const** out_str);
-
 /*!
  * \brief Query the output type of a Treelite model object
  * \param model Treelite Model object
@@ -137,6 +136,20 @@ TREELITE_DLL int TreeliteGetInputType(TreeliteModelHandle model, char const** ou
  * \return 0 for success; -1 for failure
  */
 TREELITE_DLL int TreeliteGetOutputType(TreeliteModelHandle model, char const** out_str);
+/*!
+ * \brief Query the number of trees in the model
+ * \param model Model to query
+ * \param out Number of trees
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteQueryNumTree(TreeliteModelHandle model, size_t* out);
+/*!
+ * \brief Query the number of features used in the model
+ * \param model Model to query
+ * \param out Number of features
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteQueryNumFeature(TreeliteModelHandle model, int* out);
 /*!
  * \brief Delete model from memory
  * \param handle Model to remove
