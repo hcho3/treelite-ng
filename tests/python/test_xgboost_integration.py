@@ -6,7 +6,7 @@ import os
 import numpy as np
 import pytest
 import treelite
-from hypothesis import assume, given, settings
+from hypothesis import given, settings
 from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import integers, just, lists, sampled_from
 
@@ -54,7 +54,7 @@ def test_xgb_regression(
     """Test XGBoost with regression data"""
     X, y = dataset
     if objective == "reg:squaredlogerror":
-        assume(np.all(y > -1))
+        y = np.where(y <= -1, -0.9, y)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False
     )
@@ -166,7 +166,7 @@ def test_xgb_multiclass_classifier(
             ("count:poisson", 4),
             ("rank:pairwise", 5),
             ("rank:ndcg", 5),
-            ("rank:map", 5),
+            ("rank:map", 2),
         ],
     ),
     model_format=sampled_from(["binary", "json"]),
@@ -212,7 +212,9 @@ def test_xgb_nonlinear_objective(
         )
 
         out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
-        expected_pred = xgb_model.predict(dtrain, output_margin=True)
+        expected_pred = xgb_model.predict(dtrain, output_margin=True).reshape(
+            (X.shape[0], -1)
+        )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 

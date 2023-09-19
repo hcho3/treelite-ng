@@ -487,7 +487,8 @@ bool ObjectiveHandler::StartObject() {
           || push_key_handler<IgnoreHandler>("lambda_rank_param")
           || push_key_handler<IgnoreHandler>("aft_loss_param")
           || push_key_handler<IgnoreHandler>("pseduo_huber_param")
-          || push_key_handler<IgnoreHandler>("pseudo_huber_param"));
+          || push_key_handler<IgnoreHandler>("pseudo_huber_param")
+          || push_key_handler<IgnoreHandler>("lambdarank_param"));
 }
 
 bool ObjectiveHandler::String(char const* str, std::size_t length, bool) {
@@ -501,7 +502,7 @@ bool ObjectiveHandler::is_recognized_key(std::string const& key) {
   return (key == "reg_loss_param" || key == "poisson_regression_param"
           || key == "tweedie_regression_param" || key == "softmax_multiclass_param"
           || key == "lambda_rank_param" || key == "aft_loss_param" || key == "pseduo_huber_param"
-          || key == "pseudo_huber_param" || key == "name");
+          || key == "pseudo_huber_param" || key == "lambdarank_param" || key == "name");
 }
 
 /******************************************************************************
@@ -625,8 +626,7 @@ bool LearnerHandler::EndObject(std::size_t) {
   // For now, XGBoost produces a scalar base_score
   // Assume: Either num_target or num_class must be 1
   TREELITE_CHECK(learner_params.num_target == 1 || learner_params.num_class == 1);
-  std::vector<double> base_scores(
-      learner_params.num_target * learner_params.num_class, learner_params.base_score);
+  std::vector<double> base_scores(learner_params.num_target * learner_params.num_class, base_score);
 
   model_builder::Metadata metadata{
       num_feature, task_type, average_tree_output, num_target, num_class, leaf_vector_shape};

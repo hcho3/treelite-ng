@@ -178,6 +178,7 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
   auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+  std::fill_n(output, output_view.size(), InputT{});
   TREELITE_CHECK_EQ(output_view.size(), model.num_target * num_row * max_num_class);
   std::fill(output, output + output_view.size(), InputT{});  // Fill with 0's
   std::visit(
