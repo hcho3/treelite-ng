@@ -102,14 +102,12 @@ def test_xgb_regression(
             model_name = "model.json"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
-            tl_model = treelite.Model.load(
-                filename=model_path, model_format="xgboost_json"
-            )
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
             model_name = "model.model"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
-            tl_model = treelite.Model.load(filename=model_path, model_format="xgboost")
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
         assert (
             len(json.loads(tl_model.dump_as_json())["trees"])
             == num_boost_round * num_parallel_tree
@@ -165,14 +163,12 @@ def test_xgb_multiclass_classifier(
             model_name = "iris.json"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
-            tl_model = treelite.Model.load(
-                filename=model_path, model_format="xgboost_json"
-            )
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
             model_name = "iris.model"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
-            tl_model = treelite.Model.load(filename=model_path, model_format="xgboost")
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
         expected_num_tree = num_class * num_boost_round * num_parallel_tree
         assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_num_tree
 
@@ -230,10 +226,10 @@ def test_xgb_nonlinear_objective(
         model_path = os.path.join(tmpdir, model_name)
         xgb_model.save_model(model_path)
 
-        tl_model = treelite.Model.load(
-            filename=model_path,
-            model_format=("xgboost_json" if model_format == "json" else "xgboost"),
-        )
+        if model_format == "json":
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        else:
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
 
         out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
         expected_pred = xgb_model.predict(dtrain, output_margin=True).reshape(
@@ -250,9 +246,7 @@ def test_xgb_categorical_split(in_memory):
         xgb_model = xgb.Booster(model_file=dataset_db[dataset].model)
         tl_model = treelite.Model.from_xgboost(xgb_model)
     else:
-        tl_model = treelite.Model.load(
-            dataset_db[dataset].model, model_format="xgboost_json"
-        )
+        tl_model = treelite.frontend.load_xgboost_model(dataset_db[dataset].model)
 
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
     expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape(
@@ -291,9 +285,7 @@ def test_xgb_dart(dataset, model_format, num_boost_round):
             model_name = "dart.json"
             model_path = os.path.join(tmpdir, model_name)
             xgb_model.save_model(model_path)
-            tl_model = treelite.Model.load(
-                filename=model_path, model_format="xgboost_json"
-            )
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
         else:
             tl_model = treelite.Model.from_xgboost(xgb_model)
         out_pred = treelite.gtil.predict(tl_model, X, pred_margin=True)
@@ -380,8 +372,8 @@ def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempf
             new_model_path = os.path.join(tmpdir, "new_model.json")
             with open(new_model_path, "w", encoding="utf-8") as f:
                 f.write(new_model_str)
-            treelite.Model.load(
-                new_model_path, model_format="xgboost_json", allow_unknown_field=True
+            treelite.frontend.load_xgboost_model(
+                new_model_path, allow_unknown_field=True
             )
     else:
         treelite.Model.from_xgboost_json(new_model_str, allow_unknown_field=True)
