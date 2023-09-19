@@ -181,9 +181,7 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
   auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
-  std::fill_n(output, output_view.size(), InputT{});
-  TREELITE_CHECK_EQ(output_view.size(), model.num_target * num_row * max_num_class);
-  std::fill(output, output + output_view.size(), InputT{});  // Fill with 0's
+  std::fill_n(output, output_view.size(), InputT{});  // Fill with 0's
   std::visit(
       [&](auto&& concrete_model) {
         std::size_t const num_tree = concrete_model.trees.size();
@@ -242,7 +240,6 @@ void PredictLeaf(Model const& model, InputT const* input, std::uint64_t num_row,
   auto const num_tree = model.GetNumTree();
   auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
   auto output_view = Array2DView<InputT>(output, num_row, num_tree);
-  TREELITE_CHECK_EQ(output_view.size(), num_row * num_tree);
   std::visit(
       [&](auto&& concrete_model) {
         std::size_t const num_tree = concrete_model.trees.size();
@@ -263,7 +260,35 @@ void PredictLeaf(Model const& model, InputT const* input, std::uint64_t num_row,
 template <typename InputT>
 void PredictScoreByTree(Model const& model, InputT const* input, std::uint64_t num_row,
     InputT* output, detail::threading_utils::ThreadConfig const& thread_config) {
-  TREELITE_LOG(FATAL) << "Not implemented";
+  auto input_view = CArray2DView<InputT>(input, num_row, model.num_feature);
+  auto const num_tree = model.GetNumTree();
+  auto max_num_class
+      = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
+  auto output_view = Array3DView<InputT>(
+      output, num_row, num_tree, model.leaf_vector_shape[0] * model.leaf_vector_shape[1]);
+  std::fill_n(output, output_view.size(), InputT{});  // Fill with 0's
+  std::visit(
+      [&](auto&& concrete_model) {
+        std::size_t const num_tree = concrete_model.trees.size();
+        detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+            detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+              auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
+              static_assert(std::is_same_v<decltype(row), CArray1DView<InputT>>);
+              for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+                auto const& tree = concrete_model.trees[tree_id];
+                int const leaf_id = EvaluateTree(tree, row);
+                if (tree.HasLeafVector(leaf_id)) {
+                  auto const leafvec = tree.LeafVector(leaf_id);
+                  for (std::size_t i = 0; i < leafvec.size(); ++i) {
+                    output_view(row_id, tree_id, i) = leafvec[i];
+                  }
+                } else {
+                  output_view(row_id, tree_id, 0) = tree.LeafValue(leaf_id);
+                }
+              }
+            });
+      },
+      model.variant_);
 }
 
 template <typename InputT>

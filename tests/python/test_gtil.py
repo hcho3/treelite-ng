@@ -7,7 +7,7 @@ import pytest
 import treelite
 from hypothesis import given, settings
 from hypothesis.strategies import data as hypothesis_callback
-from hypothesis.strategies import integers, just
+from hypothesis.strategies import integers, just, sampled_from
 
 from .hypothesis_util import (
     standard_classification_datasets,
@@ -22,8 +22,8 @@ except ImportError:
     pytest.skip("XGBoost not installed; skipping", allow_module_level=True)
 
 
-@pytest.mark.parametrize("predict_kind", ["leaf_id", "score_per_tree"])
 @given(
+    predict_kind=sampled_from(["leaf_id", "score_per_tree"]),
     dataset=standard_regression_datasets(),
     num_boost_round=integers(min_value=5, max_value=50),
     callback=hypothesis_callback(),
@@ -34,9 +34,6 @@ def test_predict_special_with_regressor(
 ):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost regressor"""
-    if predict_kind == "score_per_tree":
-        pytest.xfail('"score_per_tree" not yet implemented')
-
     X, y = dataset
     sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
     dtrain = xgb.DMatrix(X, label=y)
@@ -63,13 +60,15 @@ def test_predict_special_with_regressor(
         assert np.array_equal(leaf_pred, xgb_leaf_pred)
     else:
         pred_per_tree = treelite.gtil.predict_per_tree(model, X_sample)
-        assert pred_per_tree.shape == (sample_size, num_boost_round)
+        assert pred_per_tree.shape == (sample_size, num_boost_round, 1)
         pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
-        np.testing.assert_almost_equal(np.sum(pred_per_tree, axis=1), pred, decimal=3)
+        np.testing.assert_almost_equal(
+            np.sum(pred_per_tree, axis=1).flatten(), pred, decimal=3
+        )
 
 
-@pytest.mark.parametrize("predict_kind", ["leaf_id", "score_per_tree"])
 @given(
+    predict_kind=sampled_from(["leaf_id", "score_per_tree"]),
     dataset=standard_classification_datasets(n_classes=just(2)),
     num_boost_round=integers(min_value=5, max_value=50),
     callback=hypothesis_callback(),
@@ -80,9 +79,6 @@ def test_predict_special_with_binary_classifier(
 ):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost binary classifier"""
-    if predict_kind == "score_per_tree":
-        pytest.xfail('"score_per_tree" not yet implemented')
-
     X, y = dataset
     sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
 
@@ -109,13 +105,15 @@ def test_predict_special_with_binary_classifier(
         assert np.array_equal(leaf_pred, xgb_leaf_pred)
     else:
         pred_per_tree = treelite.gtil.predict_per_tree(model, X_sample)
-        assert pred_per_tree.shape == (sample_size, num_boost_round)
+        assert pred_per_tree.shape == (sample_size, num_boost_round, 1)
         pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
-        np.testing.assert_almost_equal(np.sum(pred_per_tree, axis=1), pred, decimal=3)
+        np.testing.assert_almost_equal(
+            np.sum(pred_per_tree, axis=1).flatten(), pred, decimal=3
+        )
 
 
-@pytest.mark.parametrize("predict_kind", ["leaf_id", "score_per_tree"])
 @given(
+    predict_kind=sampled_from(["leaf_id", "score_per_tree"]),
     dataset=standard_classification_datasets(
         n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
     ),
@@ -131,9 +129,6 @@ def test_predict_special_with_multiclass_classifier_grove_per_class(
     Test predict_leaf / predict_per_tree with XGBoost multiclass classifier
     (grove-per-class)
     """
-    if predict_kind == "score_per_tree":
-        pytest.xfail('"score_per_tree" not yet implemented')
-
     X, y = dataset
     sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
     num_class = np.max(y) + 1
@@ -163,7 +158,7 @@ def test_predict_special_with_multiclass_classifier_grove_per_class(
         assert np.array_equal(leaf_pred, xgb_leaf_pred)
     else:
         pred_per_tree = treelite.gtil.predict_per_tree(model, X_sample)
-        assert pred_per_tree.shape == (sample_size, model.num_tree)
+        assert pred_per_tree.shape == (sample_size, model.num_tree, 1)
         sum_by_class = np.column_stack(
             tuple(
                 np.sum(pred_per_tree[:, class_id::num_class], axis=1)
