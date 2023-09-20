@@ -351,7 +351,7 @@ class ModelBuilderImpl : public ModelBuilder {
     }
     model_->target_id = tree_annotation.target_id;
     for (std::uint32_t i = 0; i < num_tree; ++i) {
-      if (tree_annotation.class_id[i] >= 0) {
+      if (tree_annotation.class_id[i] >= 0 && tree_annotation.target_id[i] >= 0) {
         TREELITE_CHECK_LT(
             tree_annotation.class_id[i], metadata.num_class[tree_annotation.target_id[i]])
             << "Element " << i << " of class_id is out of range. Revise it to be smaller than "
