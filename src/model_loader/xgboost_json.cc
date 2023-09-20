@@ -271,18 +271,9 @@ bool RegTreeHandler::EndObject(std::size_t) {
   if (split_type.empty()) {
     split_type.resize(num_nodes, xgboost::FeatureType::kNumerical);
   }
-  if (static_cast<std::size_t>(num_nodes) != loss_changes.size()) {
-    TREELITE_LOG(ERROR) << "Field loss_changes has an incorrect dimension. Expected: " << num_nodes
-                        << ", Actual: " << loss_changes.size();
-    return false;
-  }
-  if (static_cast<std::size_t>(num_nodes) != sum_hessian.size()) {
-    TREELITE_LOG(ERROR) << "Field sum_hessian has an incorrect dimension. Expected: " << num_nodes
-                        << ", Actual: " << sum_hessian.size();
-    return false;
-  }
-  if (static_cast<std::size_t>(num_nodes) != base_weights.size()) {
-    TREELITE_LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: " << num_nodes
+  if (num_nodes * output.size_leaf_vector != base_weights.size()) {
+    TREELITE_LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: "
+                        << (num_nodes * output.size_leaf_vector)
                         << ", Actual: " << base_weights.size();
     return false;
   }
@@ -358,9 +349,13 @@ bool RegTreeHandler::EndObject(std::size_t) {
         model_builder.NumericalTest(split_indices[node_id], split_conditions[node_id],
             default_left[node_id], Operator::kLT, left_children[node_id], right_children[node_id]);
       }
-      model_builder.Gain(loss_changes[node_id]);
+      if (!loss_changes.empty()) {
+        model_builder.Gain(loss_changes[node_id]);
+      }
     }
-    model_builder.SumHess(sum_hessian[node_id]);
+    if (!sum_hessian.empty()) {
+      model_builder.SumHess(sum_hessian[node_id]);
+    }
     model_builder.EndNode();
   }
   model_builder.EndTree();

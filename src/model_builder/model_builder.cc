@@ -343,9 +343,11 @@ class ModelBuilderImpl : public ModelBuilder {
 
     // Validate target_id and class_id
     for (std::uint32_t i = 0; i < num_tree; ++i) {
-      TREELITE_CHECK_LT(tree_annotation.target_id[i], num_target)
-          << "Element " << i << " of target_id is out of range. Revise it to be smaller than "
-          << "num_target (" << num_target << ")";
+      if (tree_annotation.target_id[i] >= 0) {
+        TREELITE_CHECK_LT(tree_annotation.target_id[i], num_target)
+            << "Element " << i << " of target_id is out of range. Revise it to be smaller than "
+            << "num_target (" << num_target << ")";
+      }
     }
     model_->target_id = tree_annotation.target_id;
     for (std::uint32_t i = 0; i < num_tree; ++i) {

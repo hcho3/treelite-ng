@@ -123,6 +123,7 @@ class Model:
         allow_unknown_field: bool = False,
     ) -> Model:
         """
+        Deprecated. Please use \ref ~treelite.frontend.from_xgboost_json instead.
         Load a tree ensemble model from a string containing XGBoost JSON
 
         Parameters

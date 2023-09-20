@@ -2,6 +2,7 @@
 # pylint: disable=R0201, R0915, R0913
 import json
 import os
+import pathlib
 
 import numpy as np
 import pytest
@@ -12,6 +13,7 @@ from hypothesis.strategies import integers, just, lists, sampled_from
 
 from .hypothesis_util import (
     standard_classification_datasets,
+    standard_multi_target_binary_classification_datasets,
     standard_regression_datasets,
     standard_settings,
 )
@@ -72,7 +74,7 @@ def generate_data_for_squared_log_error():
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_xgb_regression(
+def test_xgb_regressor(
     objective, model_format, pred_margin, num_boost_round, num_parallel_tree, callback
 ):
     # pylint: disable=too-many-locals
@@ -309,9 +311,11 @@ def test_xgb_dart(dataset, model_format, num_boost_round):
 
 
 @given(
-    lists(integers(min_value=0, max_value=20), min_size=1, max_size=10),
-    sampled_from(["string", "object", "list"]),
-    sampled_from([True, False]),
+    random_integer_seq=lists(
+        integers(min_value=0, max_value=20), min_size=1, max_size=10
+    ),
+    extra_field_type=sampled_from(["string", "object", "list"]),
+    use_tempfile=sampled_from([True, False]),
 )
 @settings(print_blob=True, deadline=None)
 def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempfile):
@@ -389,4 +393,46 @@ def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempf
                 new_model_path, allow_unknown_field=True
             )
     else:
-        treelite.Model.from_xgboost_json(new_model_str, allow_unknown_field=True)
+        treelite.frontend.from_xgboost_json(new_model_str, allow_unknown_field=True)
+
+
+@given(
+    dataset=standard_multi_target_binary_classification_datasets(
+        n_targets=integers(min_value=2, max_value=10)
+    ),
+    num_boost_round=integers(min_value=5, max_value=50),
+    multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
+    pred_margin=sampled_from([True, False]),
+    in_memory=sampled_from([True, False]),
+)
+@settings(**standard_settings())
+def test_multi_target_binary_classifier(
+    dataset, num_boost_round, multi_strategy, pred_margin, in_memory
+):
+    """Test XGBoost with multi-target classification problem"""
+    X, y = dataset
+    clf = xgb.XGBClassifier(
+        n_estimators=num_boost_round,
+        tree_method="hist",
+        learning_rate=0.1,
+        max_depth=8,
+        objective="binary:logistic",
+        multi_strategy=multi_strategy,
+    )
+    clf.fit(X, y)
+
+    if in_memory:
+        tl_model = treelite.frontend.from_xgboost(clf.get_booster())
+    else:
+        with TemporaryDirectory() as tmpdir:
+            model_path = pathlib.Path(tmpdir) / "multi_target.json"
+            clf.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(str(model_path))
+
+    out_pred = treelite.gtil.predict(tl_model, X, pred_margin=pred_margin)
+    if pred_margin:
+        expected_pred = clf.predict(X, output_margin=True)
+    else:
+        expected_pred = clf.predict_proba(X)
+    expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
