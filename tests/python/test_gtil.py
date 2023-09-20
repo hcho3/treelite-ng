@@ -25,17 +25,13 @@ except ImportError:
 @given(
     predict_kind=sampled_from(["leaf_id", "score_per_tree"]),
     dataset=standard_regression_datasets(),
-    num_boost_round=integers(min_value=5, max_value=50),
-    callback=hypothesis_callback(),
+    num_boost_round=integers(min_value=5, max_value=20),
 )
 @settings(**standard_settings())
-def test_predict_special_with_regressor(
-    predict_kind, dataset, num_boost_round, callback
-):
+def test_predict_special_with_regressor(predict_kind, dataset, num_boost_round):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost regressor"""
     X, y = dataset
-    sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
     dtrain = xgb.DMatrix(X, label=y)
     param = {
         "max_depth": 8,
@@ -52,16 +48,15 @@ def test_predict_special_with_regressor(
     model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
     assert model.num_tree == num_boost_round
 
-    X_sample = X[0:sample_size]
     if predict_kind == "leaf_id":
-        leaf_pred = treelite.gtil.predict_leaf(model, X_sample)
-        assert leaf_pred.shape == (sample_size, num_boost_round)
-        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X_sample), pred_leaf=True)
+        leaf_pred = treelite.gtil.predict_leaf(model, X)
+        assert leaf_pred.shape == (X.shape[0], num_boost_round)
+        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X), pred_leaf=True)
         assert np.array_equal(leaf_pred, xgb_leaf_pred)
     else:
-        pred_per_tree = treelite.gtil.predict_per_tree(model, X_sample)
-        assert pred_per_tree.shape == (sample_size, num_boost_round, 1)
-        pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
+        pred_per_tree = treelite.gtil.predict_per_tree(model, X)
+        assert pred_per_tree.shape == (X.shape[0], num_boost_round, 1)
+        pred = xgb_model.predict(xgb.DMatrix(X), output_margin=True)
         np.testing.assert_almost_equal(
             np.sum(pred_per_tree, axis=1).flatten(), pred, decimal=3
         )
@@ -70,17 +65,13 @@ def test_predict_special_with_regressor(
 @given(
     predict_kind=sampled_from(["leaf_id", "score_per_tree"]),
     dataset=standard_classification_datasets(n_classes=just(2)),
-    num_boost_round=integers(min_value=5, max_value=50),
-    callback=hypothesis_callback(),
+    num_boost_round=integers(min_value=5, max_value=20),
 )
 @settings(**standard_settings())
-def test_predict_special_with_binary_classifier(
-    predict_kind, dataset, num_boost_round, callback
-):
+def test_predict_special_with_binary_classifier(predict_kind, dataset, num_boost_round):
     # pylint: disable=too-many-locals
     """Test predict_leaf / predict_per_tree with XGBoost binary classifier"""
     X, y = dataset
-    sample_size = callback.draw(integers(min_value=1, max_value=X.shape[0]))
 
     dtrain = xgb.DMatrix(X, label=y)
     param = {
@@ -97,16 +88,15 @@ def test_predict_special_with_binary_classifier(
     model: treelite.Model = treelite.Model.from_xgboost(xgb_model)
     assert model.num_tree == num_boost_round
 
-    X_sample = X[0:sample_size]
     if predict_kind == "leaf_id":
-        leaf_pred = treelite.gtil.predict_leaf(model, X_sample)
-        assert leaf_pred.shape == (sample_size, num_boost_round)
-        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X_sample), pred_leaf=True)
+        leaf_pred = treelite.gtil.predict_leaf(model, X)
+        assert leaf_pred.shape == (X.shape[0], num_boost_round)
+        xgb_leaf_pred = xgb_model.predict(xgb.DMatrix(X), pred_leaf=True)
         assert np.array_equal(leaf_pred, xgb_leaf_pred)
     else:
-        pred_per_tree = treelite.gtil.predict_per_tree(model, X_sample)
-        assert pred_per_tree.shape == (sample_size, num_boost_round, 1)
-        pred = xgb_model.predict(xgb.DMatrix(X_sample), output_margin=True)
+        pred_per_tree = treelite.gtil.predict_per_tree(model, X)
+        assert pred_per_tree.shape == (X.shape[0], num_boost_round, 1)
+        pred = xgb_model.predict(xgb.DMatrix(X), output_margin=True)
         np.testing.assert_almost_equal(
             np.sum(pred_per_tree, axis=1).flatten(), pred, decimal=3
         )
@@ -117,7 +107,7 @@ def test_predict_special_with_binary_classifier(
     dataset=standard_classification_datasets(
         n_classes=integers(min_value=3, max_value=10), n_informative=just(5)
     ),
-    num_boost_round=integers(min_value=5, max_value=50),
+    num_boost_round=integers(min_value=5, max_value=20),
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())

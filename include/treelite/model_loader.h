@@ -148,7 +148,7 @@ std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_fea
  * \return Loaded model
  */
 std::unique_ptr<treelite::Model> LoadRandomForestClassifier(int n_estimators, int n_features,
-    int n_targets, int const* n_classes, std::int64_t const* node_count,
+    int n_targets, int32_t const* n_classes, std::int64_t const* node_count,
     std::int64_t const** children_left, std::int64_t const** children_right,
     std::int64_t const** feature, double const** threshold, double const** value,
     std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
@@ -177,13 +177,17 @@ std::unique_ptr<treelite::Model> LoadRandomForestClassifier(int n_estimators, in
  *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,)
  * \return Loaded model
  */
 std::unique_ptr<treelite::Model> LoadGradientBoostingRegressor(int n_iter, int n_features,
     std::int64_t const* node_count, std::int64_t const** children_left,
     std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
     double const** value, std::int64_t const** n_node_samples,
-    double const** weighted_n_node_samples, double const** impurity);
+    double const** weighted_n_node_samples, double const** impurity,
+    double const* baseline_prediction);
 /*!
  * \brief Load a scikit-learn GradientBoostingClassifier model from a collection of arrays. Refer
  *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
@@ -209,13 +213,17 @@ std::unique_ptr<treelite::Model> LoadGradientBoostingRegressor(int n_iter, int n
  *                                samples associated with node k of the i-th tree.
  * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
  *                 node k of the i-th tree.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (n_classes,)
  * \return Loaded model
  */
 std::unique_ptr<treelite::Model> LoadGradientBoostingClassifier(int n_iter, int n_features,
     int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
     std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
     double const** value, std::int64_t const** n_node_samples,
-    double const** weighted_n_node_samples, double const** impurity);
+    double const** weighted_n_node_samples, double const** impurity,
+    double const* baseline_prediction);
 
 /*!
  * \brief Load a scikit-learn HistGradientBoostingRegressor model from a collection of arrays.

@@ -10,8 +10,6 @@
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
 
-#include "./c_api_utils.h"
-
 int TreeliteLoadXGBoostModelLegacyBinary(
     char const* filename, [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {
   // config_json is unused for now

@@ -81,13 +81,13 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
-    c_api/c_api.cc
     c_api/c_api_error.cc
     c_api/c_api_utils.h
     c_api/gtil.cc
     c_api/logging.cc
     c_api/model.cc
     c_api/model_loader.cc
+    c_api/sklearn.cc
     enum/operator.cc
     enum/task_type.cc
     enum/tree_node_type.cc

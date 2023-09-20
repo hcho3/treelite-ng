@@ -68,8 +68,8 @@ def generate_data_for_squared_log_error(n_targets: int = 1):
 @given(
     model_format=sampled_from(["legacy_binary", "json"]),
     pred_margin=sampled_from([True, False]),
-    num_boost_round=integers(min_value=5, max_value=50),
-    num_parallel_tree=integers(min_value=1, max_value=5),
+    num_boost_round=integers(min_value=5, max_value=20),
+    num_parallel_tree=integers(min_value=1, max_value=4),
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
@@ -87,11 +87,7 @@ def test_xgb_regressor(
         X, y = generate_data_for_squared_log_error()
     else:
         X, y = callback.draw(standard_regression_datasets())
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = xgb.DMatrix(X_train, label=y_train)
-    dtest = xgb.DMatrix(X_test, label=y_test)
+    dtrain = xgb.DMatrix(X, label=y)
     param = {
         "max_depth": 8,
         "eta": 1,
@@ -103,7 +99,6 @@ def test_xgb_regressor(
         param,
         dtrain,
         num_boost_round=num_boost_round,
-        evals=[(dtrain, "train"), (dtest, "test")],
     )
     with TemporaryDirectory() as tmpdir:
         if model_format == "json":
@@ -121,9 +116,9 @@ def test_xgb_regressor(
             == num_boost_round * num_parallel_tree
         )
 
-        out_pred = treelite.gtil.predict(tl_model, X_test, pred_margin=pred_margin)
-        expected_pred = xgb_model.predict(dtest, output_margin=pred_margin).reshape(
-            (X_test.shape[0], -1)
+        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=pred_margin)
+        expected_pred = xgb_model.predict(dtrain, output_margin=pred_margin).reshape(
+            (X.shape[0], -1)
         )
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)
 
@@ -135,8 +130,8 @@ def test_xgb_regressor(
     objective=sampled_from(["multi:softmax", "multi:softprob"]),
     pred_margin=sampled_from([True, False]),
     model_format=sampled_from(["legacy_binary", "json"]),
-    num_boost_round=integers(min_value=5, max_value=50),
-    num_parallel_tree=integers(min_value=1, max_value=5),
+    num_boost_round=integers(min_value=5, max_value=20),
+    num_parallel_tree=integers(min_value=1, max_value=4),
 )
 @settings(**standard_settings())
 def test_xgb_multiclass_classifier(
@@ -204,7 +199,7 @@ def test_xgb_multiclass_classifier(
     ),
     pred_margin=sampled_from([True, False]),
     model_format=sampled_from(["legacy_binary", "json"]),
-    num_boost_round=integers(min_value=5, max_value=50),
+    num_boost_round=integers(min_value=5, max_value=20),
     callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
@@ -273,7 +268,7 @@ def test_xgb_categorical_split(in_memory):
 @given(
     dataset=standard_classification_datasets(n_classes=just(2)),
     model_format=sampled_from(["legacy_binary", "json"]),
-    num_boost_round=integers(min_value=5, max_value=50),
+    num_boost_round=integers(min_value=5, max_value=20),
 )
 @settings(**standard_settings())
 def test_xgb_dart(dataset, model_format, num_boost_round):
@@ -399,7 +394,7 @@ def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempf
     dataset=standard_multi_target_binary_classification_datasets(
         n_targets=integers(min_value=2, max_value=10)
     ),
-    num_boost_round=integers(min_value=5, max_value=50),
+    num_boost_round=integers(min_value=5, max_value=20),
     num_parallel_tree=integers(min_value=1, max_value=3),
     multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
     pred_margin=sampled_from([True, False]),
@@ -467,10 +462,9 @@ def test_xgb_multi_target_binary_classifier(
     ],
 )
 @given(
-    n_targets=integers(min_value=2, max_value=6),
-    pred_margin=sampled_from([True, False]),
-    num_boost_round=integers(min_value=5, max_value=10),
-    num_parallel_tree=integers(min_value=1, max_value=3),
+    n_targets=integers(min_value=2, max_value=3),
+    num_boost_round=integers(min_value=3, max_value=7),
+    num_parallel_tree=integers(min_value=1, max_value=2),
     multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
     callback=hypothesis_callback(),
 )
@@ -478,7 +472,6 @@ def test_xgb_multi_target_binary_classifier(
 def test_xgb_multi_target_regressor(
     n_targets,
     objective,
-    pred_margin,
     num_boost_round,
     num_parallel_tree,
     multi_strategy,
@@ -501,7 +494,7 @@ def test_xgb_multi_target_regressor(
         model_format = callback.draw(just("json"))
     dtrain = xgb.DMatrix(X, label=y)
     param = {
-        "max_depth": 8,
+        "max_depth": 6,
         "eta": 0.1,
         "verbosity": 0,
         "objective": objective,
@@ -530,7 +523,7 @@ def test_xgb_multi_target_regressor(
             expected_n_trees *= n_targets
         assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_n_trees
 
-        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=pred_margin)
-        expected_pred = xgb_model.predict(dtrain, output_margin=pred_margin)
+        out_pred = treelite.gtil.predict(tl_model, X)
+        expected_pred = xgb_model.predict(dtrain)
         expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)

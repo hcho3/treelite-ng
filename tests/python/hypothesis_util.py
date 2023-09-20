@@ -25,9 +25,8 @@ def _get_limits(strategy):
     try:
         yield getattr(strategy, "value")  # just(...)
     except AttributeError:
-        # assume numbers strategy
         yield strategy.start
-        yield strategy.stop
+        yield strategy.end
 
 
 @composite
@@ -323,10 +322,10 @@ def standard_multi_target_binary_classification_datasets(
 
 
 def standard_settings():
-    """Default hypothesis settings. Set a smaller max_examples on Windows"""
+    """Default hypothesis settings"""
     kwargs = {
         "deadline": None,
-        "max_examples": 20,
+        "max_examples": 100,
         "print_blob": True,
     }
     return kwargs

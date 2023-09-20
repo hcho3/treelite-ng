@@ -397,7 +397,7 @@ bool GBTreeModelHandler::StartObject() {
 
 bool GBTreeModelHandler::EndObject(std::size_t) {
   if (!reg_tree_params.empty()) {
-    TREELITE_CHECK_LT(
+    TREELITE_CHECK_LE(
         reg_tree_params.size(), static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
         << "Too many trees";
     output.num_tree = static_cast<std::int32_t>(reg_tree_params.size());
