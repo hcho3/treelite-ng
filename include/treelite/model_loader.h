@@ -31,7 +31,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(std::string const&
  * \brief Load an XGBoost model from a memory buffer.
  * \param buf memory buffer
  * \param len size of memory buffer
- * \return loaded model
+ * \return Loaded model
  */
 std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(void const* buf, std::size_t len);
 /*!
@@ -52,6 +52,244 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(char const* filename, char con
  */
 std::unique_ptr<treelite::Model> LoadXGBoostModelFromString(
     char const* json_str, std::size_t length, char const* config_json);
+
+//--------------------------------------------------------------------------
+// Model loaders for Scikit-Learn models
+//--------------------------------------------------------------------------
+namespace sklearn {
+/*!
+ * \brief Load a scikit-learn RandomForestRegressor model from a collection of arrays. Refer to
+ *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
+ *        learn the meaning of the arrays in detail. Note that this function can also be used to
+ *        load an ensemble of extremely randomized trees (sklearn.ensemble.ExtraTreesRegressor).
+ * \param n_estimators Number of trees in the random forest
+ * \param n_features Number of features in the training data
+ * \param n_targets Number of targets (outputs)
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
+ * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
+ *                 node k of the i-th tree.
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadRandomForestRegressor(int n_estimators, int n_features,
+    int n_targets, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
+/*!
+ * \brief Load a scikit-learn IsolationForest model from a collection of arrays. Refer to
+ *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
+ *        learn the meaning of the arrays in detail.
+ * \param n_estimators Number of trees in the isolation forest
+ * \param n_features Number of features in the training data
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param value value[i][k] stores the expected isolation depth of node k of the i-th tree. This is
+ *              only defined if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
+ * \param impurity Not used, but must be passed as array of arrays for each tree and node.
+ * \param ratio_c Standardizing constant to use for calculation of the anomaly score.
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadIsolationForest(int n_estimators, int n_features,
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity, double ratio_c);
+/*!
+ * \brief Load a scikit-learn RandomForestClassifier model from a collection of arrays. Refer to
+ *        https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
+ *        learn the meaning of the arrays in detail. Note that this function can also be used to
+ *        load an ensemble of extremely randomized trees (sklearn.ensemble.ExtraTreesClassifier).
+ * \param n_estimators Number of trees in the random forest
+ * \param n_features Number of features in the training data
+ * \param n_targets Number of targets (outputs)
+ * \param n_classes n_classes[i] stores the number of classes in the i-th target
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
+ * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
+ *                 node k of the i-th tree.
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadRandomForestClassifier(int n_estimators, int n_features,
+    int n_targets, int const* n_classes, std::int64_t const* node_count,
+    std::int64_t const** children_left, std::int64_t const** children_right,
+    std::int64_t const** feature, double const** threshold, double const** value,
+    std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
+    double const** impurity);
+/*!
+ * \brief Load a scikit-learn GradientBoostingRegressor model from a collection of arrays. Refer
+ *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
+ *        learn the meaning of the arrays in detail.
+ *        Note: GradientBoostingRegressor does not support multiple targets (outputs).
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
+ * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
+ *                 node k of the i-th tree.
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadGradientBoostingRegressor(int n_iter, int n_features,
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
+/*!
+ * \brief Load a scikit-learn GradientBoostingClassifier model from a collection of arrays. Refer
+ *        to https://scikit-learn.org/stable/auto_examples/tree/plot_unveil_tree_structure.html to
+ *        learn the meaning of the arrays in detail.
+ *        Note: GradientBoostingClassifier does not support multiple targets (outputs).
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param n_classes Number of classes in the target variable
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param weighted_n_node_samples weighted_n_node_samples[i][k] stores the sum of weighted data
+ *                                samples associated with node k of the i-th tree.
+ * \param impurity impurity[i][k] stores the impurity measure (gini, entropy etc) associated with
+ *                 node k of the i-th tree.
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadGradientBoostingClassifier(int n_iter, int n_features,
+    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    double const** value, std::int64_t const** n_node_samples,
+    double const** weighted_n_node_samples, double const** impurity);
+
+/*!
+ * \brief Load a scikit-learn HistGradientBoostingRegressor model from a collection of arrays.
+ *        Note: HistGradientBoostingRegressor does not support multiple targets (outputs).
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param default_left default_left[i][k] indicates how the missing value should be handled at
+ *                     node k of the i-th tree. This flag is defined if node k is an internal
+ *                     (non-leaf) node. If True, the missing value will be associated with the left
+ *                     child; if False, the missing value will be associated with the right child.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
+ *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,)
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, int n_features,
+    std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    std::int8_t const** default_left, double const** value, std::int64_t const** n_node_samples,
+    double const** gain, double const* baseline_prediction);
+
+/*!
+ * \brief Load a scikit-learn HistGradientBoostingClassifier model from a collection of arrays.
+ *        Note: HistGradientBoostingClassifier does not support multiple targets (outputs).
+ * \param n_iter Number of boosting iterations
+ * \param n_features Number of features in the training data
+ * \param n_classes Number of classes in the target variable
+ * \param node_count node_count[i] stores the number of nodes in the i-th tree
+ * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
+ *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
+ *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
+ *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
+ *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param default_left default_left[i][k] indicates how the missing value should be handled at
+ *                     node k of the i-th tree. This flag is defined if node k is an internal
+ *                     (non-leaf) node. If True, the missing value will be associated with the left
+ *                     child; if False, the missing value will be associated with the right child.
+ * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
+ *              if node k is a leaf node.
+ * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
+ *                       node k of the i-th tree.
+ * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
+ *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param baseline_prediction Baseline predictions for outputs. At prediction, margin scores will be
+ *                            adjusted by this amount before applying the post-processing (link)
+ *                            function. Required shape: (1,) for binary classification;
+ *                            (n_classes,) for multi-class classification
+ * \return Loaded model
+ */
+std::unique_ptr<treelite::Model> LoadHistGradientBoostingClassifier(int n_iter, int n_features,
+    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
+    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
+    std::int8_t const** default_left, double const** value, std::int64_t const** n_node_samples,
+    double const** gain, double const* baseline_prediction);
+
+}  // namespace sklearn
 
 }  // namespace model_loader
 }  // namespace treelite
