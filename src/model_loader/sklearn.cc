@@ -24,13 +24,14 @@ namespace detail {
 
 class RandomForestRegressorMixIn {
  public:
-  void HandleMetadata(
-      model_builder::ModelBuilder& builder, int n_features, [[maybe_unused]] int n_classes) const {
-    model_builder::Metadata metadata{
-        n_features,
-        TaskType::kRegressor,
-        true,
-    };
+  void HandleMetadata(model_builder::ModelBuilder& builder, int n_features, int n_targets,
+      int const* n_classes) const {
+    std::vector<std::int32_t> n_classes_(n_targets);
+    std::transform(n_classes, n_classes + n_targets, n_classes_.begin(),
+        [](int e) { return static_cast<std::int32_t>(e); });
+    auto max_n_classes = *std::max_element(n_classes_.begin(), n_classes_.end());
+    model_builder::Metadata metadata{n_features, TaskType::kRegressor, true,
+        static_cast<std::int32_t>(n_targets), n_classes_, {n_targets, max_n_classes}};
     model->num_feature = n_features;
     model->average_tree_output = true;
     model->task_type = TaskType::kRegressor;
@@ -51,7 +52,7 @@ class RandomForestRegressorMixIn {
 
 template <typename MixIn>
 std::unique_ptr<Model> LoadSKLearnModel(MixIn const& mixin, int n_trees, int n_features,
-    int n_classes, [[maybe_unused]] std::int64_t const* node_count,
+    int n_targets, int const* n_classes, [[maybe_unused]] std::int64_t const* node_count,
     std::int64_t const** children_left, std::int64_t const** children_right,
     std::int64_t const** feature, double const** threshold, double const** value,
     std::int64_t const** n_node_samples, double const** weighted_n_node_samples,
@@ -61,7 +62,7 @@ std::unique_ptr<Model> LoadSKLearnModel(MixIn const& mixin, int n_trees, int n_f
 
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64);
-  mixin.HandleMetadata(*builder, n_features, n_classes);
+  mixin.HandleMetadata(*builder, n_features, n_targets, n_classes);
 
   auto& trees = std::get<ModelPreset<double, double>>(model->variant_).trees;
   for (int tree_id = 0; tree_id < n_trees; ++tree_id) {
@@ -120,8 +121,10 @@ std::unique_ptr<treelite::Model> LoadRandomForestRegressor(int n_estimators, int
     double const** value, std::int64_t const** n_node_samples,
     double const** weighted_n_node_samples, double const** impurity) {
   detail::RandomForestRegressorMixIn mixin{};
-  return detail::LoadSKLearnModel(mixin, n_estimators, n_features, 1, node_count, children_left,
-      children_right, feature, threshold, value, n_node_samples, weighted_n_node_samples, impurity);
+  std::vector<int> n_classes(n_targets, 1);
+  return detail::LoadSKLearnModel(mixin, n_estimators, n_features, n_targets, n_classes.data(),
+      node_count, children_left, children_right, feature, threshold, value, n_node_samples,
+      weighted_n_node_samples, impurity);
 }
 
 }  // namespace treelite::model_loader::sklearn

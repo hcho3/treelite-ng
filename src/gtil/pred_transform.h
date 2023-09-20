@@ -17,7 +17,7 @@ class Model;
 namespace gtil {
 
 template <typename InputT>
-using PredTransformFunc = void (*)(treelite::Model const&, std::uint32_t, InputT*);
+using PredTransformFunc = void (*)(treelite::Model const&, std::int32_t, InputT*);
 
 template <typename InputT>
 PredTransformFunc<InputT> GetPredTransformFunc(std::string const& name);

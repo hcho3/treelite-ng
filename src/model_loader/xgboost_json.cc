@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <queue>
 #include <string>
@@ -317,7 +318,7 @@ bool RegTreeHandler::EndObject(std::size_t) {
   }
 
   model_builder.StartTree();
-  for (int node_id = 0; node_id < num_nodes; ++node_id) {
+  for (std::int32_t node_id = 0; node_id < num_nodes; ++node_id) {
     model_builder.StartNode(node_id);
     if (left_children[node_id] == -1) {
       auto const size_leaf_vector = output.size_leaf_vector;
@@ -396,7 +397,10 @@ bool GBTreeModelHandler::StartObject() {
 
 bool GBTreeModelHandler::EndObject(std::size_t) {
   if (!reg_tree_params.empty()) {
-    output.num_tree = static_cast<std::uint32_t>(reg_tree_params.size());
+    TREELITE_CHECK_LT(
+        reg_tree_params.size(), static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max()))
+        << "Too many trees";
+    output.num_tree = static_cast<std::int32_t>(reg_tree_params.size());
     output.size_leaf_vector = reg_tree_params[0].size_leaf_vector;
     for (ParsedRegTreeParams const& e : reg_tree_params) {
       TREELITE_CHECK_EQ(e.size_leaf_vector, output.size_leaf_vector)
@@ -511,7 +515,7 @@ bool LearnerParamHandler::String(char const* str, std::size_t, bool) {
   return (
       assign_value("base_score", static_cast<float>(std::strtod(str, nullptr)), output.base_score)
       || assign_value("num_class", std::max(std::stoi(str), 1), output.num_class)
-      || assign_value("num_target", static_cast<std::uint32_t>(std::stoi(str)), output.num_target)
+      || assign_value("num_target", static_cast<std::int32_t>(std::stoi(str)), output.num_target)
       || assign_value("num_feature", std::stoi(str), output.num_feature)
       || assign_value(
           "boost_from_average", static_cast<bool>(std::stoi(str)), output.boost_from_average));
@@ -541,24 +545,24 @@ bool LearnerHandler::StartObject() {
 bool LearnerHandler::EndObject(std::size_t) {
   /* Set metadata */
   auto const num_tree = output.num_tree;
-  auto const num_feature = static_cast<std::int32_t>(learner_params.num_feature);
+  auto const num_feature = learner_params.num_feature;
   bool const average_tree_output = false;
-  std::uint32_t const num_target = learner_params.num_target;
+  auto const num_target = learner_params.num_target;
 
   treelite::model_builder::PredTransformFunc pred_transform{
       treelite::model_loader::detail::xgboost::GetPredTransform(objective)};
   output.objective_name = objective;  // Save objective name, to use later
 
   treelite::TaskType task_type;
-  std::vector<std::uint32_t> num_class;
+  std::vector<std::int32_t> num_class;
   std::vector<std::int32_t> target_id, class_id;
-  std::array<std::uint32_t, 2> leaf_vector_shape{1, 1};
+  std::array<std::int32_t, 2> leaf_vector_shape{1, 1};
   if (learner_params.num_class > 1) {  // Multi-class classifier
     // For now, XGBoost does not support multi-target models for multi-class classification
     // So if num_class > 1, we can assume num_target == 1
     TREELITE_CHECK_EQ(learner_params.num_target, 1)
         << "XGBoost does not support multi-target models for multi-class classification";
-    num_class = std::vector<std::uint32_t>{static_cast<std::uint32_t>(learner_params.num_class)};
+    num_class = std::vector<std::int32_t>{learner_params.num_class};
     task_type = TaskType::kMultiClf;
     target_id = std::vector<std::int32_t>(num_tree, 0);
     TREELITE_CHECK_GT(output.size_leaf_vector, 0);
@@ -575,7 +579,7 @@ bool LearnerHandler::EndObject(std::size_t) {
       }
     }
     leaf_vector_shape[0] = 1;
-    leaf_vector_shape[1] = static_cast<std::uint32_t>(output.size_leaf_vector);
+    leaf_vector_shape[1] = output.size_leaf_vector;
   } else {
     // Binary classifier or regressor
     if (StringStartsWith(output.objective_name, "binary:")) {
@@ -585,12 +589,12 @@ bool LearnerHandler::EndObject(std::size_t) {
     } else {
       task_type = TaskType::kRegressor;
     }
-    num_class = std::vector<std::uint32_t>(num_target, 1);
+    num_class = std::vector<std::int32_t>(num_target, 1);
     class_id = std::vector<std::int32_t>(num_tree, 0);
     if (output.size_leaf_vector > 1) {
       // Vector-leaf output
       target_id = std::vector<std::int32_t>(num_tree, -1);
-      TREELITE_CHECK_EQ(num_target, static_cast<std::uint32_t>(output.size_leaf_vector));
+      TREELITE_CHECK_EQ(num_target, static_cast<std::int32_t>(output.size_leaf_vector));
       leaf_vector_shape[0] = num_target;
       leaf_vector_shape[1] = 1;
     } else {

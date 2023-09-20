@@ -288,8 +288,8 @@ class ModelBuilderImpl : public ModelBuilder {
   }
 
  private:
-  std::uint32_t expected_num_tree_;
-  std::uint32_t expected_leaf_size_;
+  std::int32_t expected_num_tree_;
+  std::int32_t expected_leaf_size_;
   std::unique_ptr<Model> model_;
   Tree<ThresholdT, LeafOutputT> current_tree_;
   std::map<int, int> node_id_map_;  // user-defined ID -> internal ID
@@ -330,19 +330,19 @@ class ModelBuilderImpl : public ModelBuilder {
       PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes) {
     TREELITE_CHECK(!metadata_initialized_) << "Metadata must be initialized only once";
-    const std::uint32_t num_tree = tree_annotation.num_tree;
-    const std::uint32_t num_target = metadata.num_target;
+    const std::int32_t num_tree = tree_annotation.num_tree;
+    const std::int32_t num_target = metadata.num_target;
 
     model_->num_feature = metadata.num_feature;
     model_->task_type = metadata.task_type;
     model_->average_tree_output = metadata.average_tree_output;
     model_->num_target = num_target;
     model_->num_class = metadata.num_class;
-    model_->leaf_vector_shape = std::vector<std::uint32_t>(
+    model_->leaf_vector_shape = std::vector<std::int32_t>(
         metadata.leaf_vector_shape.begin(), metadata.leaf_vector_shape.end());
 
     // Validate target_id and class_id
-    for (std::uint32_t i = 0; i < num_tree; ++i) {
+    for (std::int32_t i = 0; i < num_tree; ++i) {
       if (tree_annotation.target_id[i] >= 0) {
         TREELITE_CHECK_LT(tree_annotation.target_id[i], num_target)
             << "Element " << i << " of target_id is out of range. Revise it to be smaller than "
@@ -350,7 +350,7 @@ class ModelBuilderImpl : public ModelBuilder {
       }
     }
     model_->target_id = tree_annotation.target_id;
-    for (std::uint32_t i = 0; i < num_tree; ++i) {
+    for (std::int32_t i = 0; i < num_tree; ++i) {
       if (tree_annotation.class_id[i] >= 0 && tree_annotation.target_id[i] >= 0) {
         TREELITE_CHECK_LT(
             tree_annotation.class_id[i], metadata.num_class[tree_annotation.target_id[i]])
@@ -364,7 +364,7 @@ class ModelBuilderImpl : public ModelBuilder {
     model_->pred_transform = pred_transform.pred_transform_name;
     detail::ConfigurePredTransform(model_.get(), pred_transform);
 
-    const std::uint32_t max_num_class
+    const std::int32_t max_num_class
         = *std::max_element(metadata.num_class.begin(), metadata.num_class.end());
     TREELITE_CHECK_EQ(base_scores.size(), num_target * max_num_class);
     model_->base_scores = base_scores;
@@ -374,7 +374,7 @@ class ModelBuilderImpl : public ModelBuilder {
 
     expected_num_tree_ = tree_annotation.num_tree;
     expected_leaf_size_ = std::accumulate(metadata.leaf_vector_shape.begin(),
-        metadata.leaf_vector_shape.end(), std::uint32_t(1), std::multiplies<>{});
+        metadata.leaf_vector_shape.end(), std::int32_t(1), std::multiplies<>{});
     metadata_initialized_ = true;
   }
 };

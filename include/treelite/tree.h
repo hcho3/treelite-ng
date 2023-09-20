@@ -161,7 +161,7 @@ class Tree {
    * \brief Feature index of the node's split condition
    * \param nid ID of node being queried
    */
-  inline std::uint32_t SplitIndex(int nid) const {
+  inline std::int32_t SplitIndex(int nid) const {
     return split_index_[nid];
   }
   /*!
@@ -498,9 +498,9 @@ class Model {
   bool average_tree_output{false};
 
   /* Task parameters */
-  std::uint32_t num_target;
-  ContiguousArray<std::uint32_t> num_class;
-  ContiguousArray<std::uint32_t> leaf_vector_shape;
+  std::int32_t num_target;
+  ContiguousArray<std::int32_t> num_class;
+  ContiguousArray<std::int32_t> leaf_vector_shape;
   /* Per-tree metadata */
   ContiguousArray<std::int32_t> target_id;
   ContiguousArray<std::int32_t> class_id;

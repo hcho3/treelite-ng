@@ -66,10 +66,10 @@ class ModelBuilder {
 };
 
 struct TreeAnnotation {
-  std::uint32_t num_tree{0};
+  std::int32_t num_tree{0};
   std::vector<std::int32_t> target_id{};
   std::vector<std::int32_t> class_id{};
-  TreeAnnotation(std::uint32_t num_tree, std::vector<std::int32_t> const& target_id,
+  TreeAnnotation(std::int32_t num_tree, std::vector<std::int32_t> const& target_id,
       std::vector<std::int32_t> const& class_id);
 };
 
@@ -84,12 +84,12 @@ struct Metadata {
   std::int32_t num_feature{0};
   TaskType task_type{TaskType::kRegressor};
   bool average_tree_output{false};
-  std::uint32_t num_target{1};
-  std::vector<std::uint32_t> num_class{1};
-  std::array<std::uint32_t, 2> leaf_vector_shape{1, 1};
+  std::int32_t num_target{1};
+  std::vector<std::int32_t> num_class{1};
+  std::array<std::int32_t, 2> leaf_vector_shape{1, 1};
   Metadata(std::int32_t num_feature, TaskType task_type, bool average_tree_output,
-      std::uint32_t num_target, std::vector<std::uint32_t> const& num_class,
-      std::array<std::uint32_t, 2> const& leaf_vector_shape);
+      std::int32_t num_target, std::vector<std::int32_t> const& num_class,
+      std::array<std::int32_t, 2> const& leaf_vector_shape);
 };
 
 std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type,

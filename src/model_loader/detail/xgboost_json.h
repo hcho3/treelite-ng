@@ -340,17 +340,17 @@ class ArrayHandler : public OutputHandler<std::vector<ElemType>> {
 
 struct ParsedXGBoostModel {
   std::unique_ptr<treelite::model_builder::ModelBuilder> builder{};
-  std::uint32_t num_tree{0};
+  std::int32_t num_tree{0};
   std::vector<unsigned> version{};
   std::vector<int> tree_info{};
   std::string objective_name{};
-  int size_leaf_vector{0};
+  std::int32_t size_leaf_vector{0};
   std::vector<float> weight_drop{};
 };
 
 struct ParsedRegTreeParams {
-  int num_nodes{0};
-  int size_leaf_vector{0};
+  std::int32_t num_nodes{0};
+  std::int32_t size_leaf_vector{0};
 };
 
 /*! \brief handler for TreeParam objects from XGBoost schema*/
@@ -466,9 +466,9 @@ class ObjectiveHandler : public OutputHandler<std::string> {
 
 struct ParsedLearnerParams {
   float base_score{0.0};
-  int num_class{1};
-  int num_feature{0};
-  std::uint32_t num_target{1};
+  std::int32_t num_class{1};
+  std::int32_t num_feature{0};
+  std::int32_t num_target{1};
   bool boost_from_average{false};
 };
 

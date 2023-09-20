@@ -133,7 +133,7 @@ void WriteNode(
 template <typename WriterType>
 void SerializeTaskParametersToJSON(WriterType& writer, treelite::Model const& model) {
   writer.Key("num_target");
-  writer.Uint(model.num_target);
+  writer.Int(model.num_target);
   writer.Key("num_class");
   WriteArray(writer, model.num_class);
   writer.Key("leaf_vector_shape");

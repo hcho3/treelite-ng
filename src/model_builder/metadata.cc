@@ -17,7 +17,7 @@
 
 namespace treelite::model_builder {
 
-TreeAnnotation::TreeAnnotation(std::uint32_t num_tree, std::vector<std::int32_t> const& target_id,
+TreeAnnotation::TreeAnnotation(std::int32_t num_tree, std::vector<std::int32_t> const& target_id,
     std::vector<std::int32_t> const& class_id)
     : num_tree{num_tree}, target_id{target_id}, class_id{class_id} {
   TREELITE_CHECK_EQ(target_id.size(), num_tree)
@@ -31,8 +31,8 @@ PredTransformFunc::PredTransformFunc(
     : pred_transform_name(pred_transform_name), config_json(config_json ? *config_json : "{}") {}
 
 Metadata::Metadata(std::int32_t num_feature, TaskType task_type, bool average_tree_output,
-    std::uint32_t num_target, std::vector<std::uint32_t> const& num_class,
-    std::array<std::uint32_t, 2> const& leaf_vector_shape)
+    std::int32_t num_target, std::vector<std::int32_t> const& num_class,
+    std::array<std::int32_t, 2> const& leaf_vector_shape)
     : num_feature(num_feature),
       task_type(task_type),
       average_tree_output(average_tree_output),
@@ -42,13 +42,13 @@ Metadata::Metadata(std::int32_t num_feature, TaskType task_type, bool average_tr
   TREELITE_CHECK_GT(num_target, 0) << "num_target must be at least 1";
   TREELITE_CHECK_EQ(num_class.size(), num_target)
       << "num_class field must have length equal to num_target (" << num_target << ")";
-  if (!std::all_of(num_class.begin(), num_class.end(), [](std::uint32_t e) { return e >= 1; })) {
+  if (!std::all_of(num_class.begin(), num_class.end(), [](std::int32_t e) { return e >= 1; })) {
     TREELITE_LOG(FATAL) << "All elements in num_class field must be at least 1.";
   }
   TREELITE_CHECK(leaf_vector_shape[0] == 1 || leaf_vector_shape[0] == num_target)
       << "leaf_vector_shape[0] must be either 1 or num_target (" << num_target << "). "
       << "Currently given: leaf_vector_shape[1] = " << leaf_vector_shape[1];
-  const std::uint32_t max_num_class = *std::max_element(num_class.begin(), num_class.end());
+  const std::int32_t max_num_class = *std::max_element(num_class.begin(), num_class.end());
   TREELITE_CHECK(leaf_vector_shape[1] == 1 || leaf_vector_shape[1] == max_num_class)
       << "leaf_vector_shape[1] must be either 1 or max_num_class (" << max_num_class << "). "
       << "Currently given: leaf_vector_shape[1] = " << leaf_vector_shape[1];

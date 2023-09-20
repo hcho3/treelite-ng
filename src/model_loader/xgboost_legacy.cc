@@ -238,14 +238,6 @@ class XGBTree {
       this->cleft_ = -1;
       this->cright_ = -1;
     }
-    inline void set_split(
-        std::uint32_t split_index, bst_float split_cond, bool default_left = false) {
-      if (default_left) {
-        split_index |= (1U << 31);
-      }
-      this->sindex_ = split_index;
-      (this->info_).split_cond = split_cond;
-    }
 
     union Info {
       bst_float leaf_value;
@@ -410,10 +402,12 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   bool const average_tree_output = false;
 
   // XGBoost binary format only supports decision trees with scalar outputs
-  std::uint32_t const num_target = mparam_.num_target;
+  auto const num_target = static_cast<std::int32_t>(mparam_.num_target);
+  TREELITE_CHECK_GE(num_target, 0) << "num_target too big and caused an integer overflow";
+  TREELITE_CHECK_GE(num_target, 1) << "num_target must be at least 1";
   std::int32_t const num_class = std::max(mparam_.num_class, static_cast<std::int32_t>(1));
-  std::array<std::uint32_t, 2> const leaf_vector_shape{1, 1};
-  auto const num_tree = static_cast<std::uint32_t>(gbm_param_.num_trees);
+  std::array<std::int32_t, 2> const leaf_vector_shape{1, 1};
+  auto const num_tree = static_cast<std::int32_t>(gbm_param_.num_trees);
 
   // Assume: Either num_target or num_class must be 1
   TREELITE_CHECK(num_target == 1 || num_class == 1);
@@ -427,7 +421,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     // tree_info field provided by XGBoost
     task_type = treelite::TaskType::kMultiClf;
     class_id = std::vector<std::int32_t>(num_tree);
-    for (std::uint32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+    for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
       class_id[tree_id] = tree_info[tree_id];
     }
     target_id = std::vector<std::int32_t>(num_tree, 0);
@@ -442,7 +436,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     class_id = std::vector<std::int32_t>(num_tree, 0);
     target_id = std::vector<std::int32_t>(num_tree);
-    for (std::uint32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+    for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
       target_id[tree_id] = tree_info[tree_id];
     }
   }
@@ -450,8 +444,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   treelite::model_builder::PredTransformFunc pred_transform{
       treelite::model_loader::detail::xgboost::GetPredTransform(name_obj_)};
   treelite::model_builder::Metadata metadata{num_feature, task_type, average_tree_output,
-      num_target, std::vector<std::uint32_t>(num_target, static_cast<std::uint32_t>(num_class)),
-      leaf_vector_shape};
+      num_target, std::vector<std::int32_t>(num_target, num_class), leaf_vector_shape};
   treelite::model_builder::TreeAnnotation tree_annotation{num_tree, target_id, class_id};
 
   // Set base scores. For now, XGBoost only supports a scalar base score for all targets / classes.
@@ -487,8 +480,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
           builder->LeafScalar(leaf_value);
         } else {
           bst_float const split_cond = node.split_cond();
-          builder->NumericalTest(node.split_index(), static_cast<float>(split_cond),
-              node.default_left(), treelite::Operator::kLT, node.cleft(), node.cright());
+          builder->NumericalTest(static_cast<std::int32_t>(node.split_index()),
+              static_cast<float>(split_cond), node.default_left(), treelite::Operator::kLT,
+              node.cleft(), node.cright());
           builder->Gain(stat.loss_chg);
         }
         builder->SumHess(stat.sum_hess);
