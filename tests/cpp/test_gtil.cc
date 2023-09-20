@@ -99,6 +99,66 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   }
 }
 
+TEST_P(GTIL, LeafVectorRF) {
+  model_builder::Metadata metadata{1, TaskType::kMultiClf, true, 1, {3}, {1, 3}};
+  model_builder::TreeAnnotation tree_annotation{2, {0, 0}, {-1, -1}};
+  model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
+  std::vector<double> base_scores{0.0, 0.0, 0.0};
+  std::unique_ptr<model_builder::ModelBuilder> builder
+      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
+          tree_annotation, pred_transform, base_scores);
+  auto make_tree_stump
+      = [&](std::vector<float> const& left_child_val, std::vector<float> const& right_child_val) {
+          builder->StartTree();
+          builder->StartNode(0);
+          builder->NumericalTest(0, 0.0, false, Operator::kLT, 1, 2);
+          builder->EndNode();
+          builder->StartNode(1);
+          builder->LeafVector(left_child_val);
+          builder->EndNode();
+          builder->StartNode(2);
+          builder->LeafVector(right_child_val);
+          builder->EndNode();
+          builder->EndTree();
+        };
+  make_tree_stump({1.0f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.5f});
+  make_tree_stump({1.0f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.5f});
+
+  auto const predict_kind = GetParam();
+
+  std::unique_ptr<Model> model = builder->CommitModel();
+  gtil::Configuration config(fmt::format(R"({{
+     "predict_type": "{}",
+     "nthread": 1
+  }})",
+      predict_kind));
+
+  std::vector<std::uint64_t> expected_output_shape;
+  std::vector<std::vector<float>> expected_output;
+  if (predict_kind == "raw" || predict_kind == "default") {
+    expected_output_shape = {1, 3};
+    expected_output = {{0.0f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}};
+  } else if (predict_kind == "leaf_id") {
+    expected_output_shape = {1, 2};
+    expected_output = {{2, 2}, {1, 1}};
+  }
+  auto output_shape = gtil::GetOutputShape(*model, 1, config);
+  EXPECT_EQ(output_shape, expected_output_shape);
+
+  std::vector<float> output(std::accumulate(
+      output_shape.begin(), output_shape.end(), std::uint64_t(1), std::multiplies<>()));
+  {
+    std::vector<float> input{1.0f};
+    gtil::Predict(*model, input.data(), 1, output.data(), config);
+    EXPECT_EQ(output, expected_output[0]);
+  }
+  {
+    std::vector<float> input{-1.0f};
+    gtil::Predict(*model, input.data(), 1, output.data(), config);
+    EXPECT_EQ(output, expected_output[1]);
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(/* no prefix */, GTIL, testing::Values("raw", "default", "leaf_id"));
 
 }  // namespace treelite

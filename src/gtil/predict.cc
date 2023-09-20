@@ -38,9 +38,6 @@ using CArray1DView
 template <typename ElemT>
 using CArray2DView
     = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 2>, stdex::layout_right>;
-template <typename ElemT>
-using CArray3DView
-    = stdex::mdspan<ElemT const, stdex::dextents<std::uint64_t, 3>, stdex::layout_right>;
 
 template <typename InputT, typename ThresholdT>
 inline int NextNode(
@@ -181,10 +178,10 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
   auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
+  std::size_t const num_tree = model.GetNumTree();
   std::fill_n(output, output_view.size(), InputT{});  // Fill with 0's
   std::visit(
       [&](auto&& concrete_model) {
-        std::size_t const num_tree = concrete_model.trees.size();
         detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
             detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
               auto row = stdex::submdspan(input_view, row_id, stdex::full_extent);
@@ -203,6 +200,18 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
             });
       },
       model.variant_);
+  // Apply tree averaging
+  if (model.average_tree_output) {
+    for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
+      detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
+          detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
+            for (std::uint32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+              output_view(target_id, row_id, class_id) /= static_cast<InputT>(num_tree);
+            }
+          });
+    }
+  }
+  // Apply base scores
   auto base_score_view
       = CArray2DView<double>(model.base_scores.Data(), model.num_target, max_num_class);
   for (std::uint32_t target_id = 0; target_id < model.num_target; ++target_id) {
