@@ -29,7 +29,7 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   model_builder::Metadata metadata{1, TaskType::kMultiClf, false, 1, {3}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{6, {0, 0, 0, 0, 0, 0}, {0, 1, 2, 0, 1, 2}};
   model_builder::PredTransformFunc pred_transform{"softmax"};
-  std::vector<double> base_scores{0.0, 0.0, 0.0};
+  std::vector<double> base_scores{0.3, 0.2, 0.5};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
@@ -66,7 +66,7 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   std::vector<std::vector<float>> expected_output;
   if (predict_kind == "raw") {
     expected_output_shape = {1, 3};
-    expected_output = {{1.0f, -2.0f, 2.0f}, {-2.0f, 1.0f, 1.0f}};
+    expected_output = {{1.3f, -1.8f, 2.5f}, {-1.7f, 1.2f, 1.5f}};
   } else if (predict_kind == "default") {
     expected_output_shape = {1, 3};
     auto softmax = [](float a, float b, float c) {
@@ -77,7 +77,7 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
       float const sum = std::exp(a) + std::exp(b) + std::exp(c);
       return std::vector<float>{std::exp(a) / sum, std::exp(b) / sum, std::exp(c) / sum};
     };
-    expected_output = {softmax(1.0f, -2.0f, 2.0f), softmax(-2.0f, 1.0f, 1.0f)};
+    expected_output = {softmax(1.3f, -1.8f, 2.5f), softmax(-1.7f, 1.2f, 1.5f)};
   } else if (predict_kind == "leaf_id") {
     expected_output_shape = {1, 6};
     expected_output = {{2, 2, 2, 2, 2, 2}, {1, 1, 1, 1, 1, 1}};
@@ -103,7 +103,7 @@ TEST_P(GTIL, LeafVectorRF) {
   model_builder::Metadata metadata{1, TaskType::kMultiClf, true, 1, {3}, {1, 3}};
   model_builder::TreeAnnotation tree_annotation{2, {0, 0}, {-1, -1}};
   model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
-  std::vector<double> base_scores{0.0, 0.0, 0.0};
+  std::vector<double> base_scores{100.0, 200.0, 300.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
           tree_annotation, pred_transform, base_scores);
@@ -137,7 +137,7 @@ TEST_P(GTIL, LeafVectorRF) {
   std::vector<std::vector<float>> expected_output;
   if (predict_kind == "raw" || predict_kind == "default") {
     expected_output_shape = {1, 3};
-    expected_output = {{0.0f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}};
+    expected_output = {{100.0f, 200.5f, 300.5f}, {101.0f, 200.0f, 300.0f}};
   } else if (predict_kind == "leaf_id") {
     expected_output_shape = {1, 2};
     expected_output = {{2, 2}, {1, 1}};
