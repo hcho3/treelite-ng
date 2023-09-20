@@ -1,5 +1,5 @@
 """Tests for XGBoost integration"""
-# pylint: disable=R0201, R0915, R0913
+# pylint: disable=R0201, R0915, R0913, R0914
 import json
 import os
 import pathlib
@@ -34,7 +34,7 @@ except ImportError:
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
 
 
-def generate_data_for_squared_log_error():
+def generate_data_for_squared_log_error(n_targets: int = 1):
     """Generate data containing outliers."""
     n_rows = 4096
     n_cols = 16
@@ -43,13 +43,13 @@ def generate_data_for_squared_log_error():
     n_outliers = 64
 
     X = np.random.randn(n_rows, n_cols)
-    y = np.random.randn(n_rows)
-    y += np.abs(np.min(y))
+    y = np.random.randn(n_rows, n_targets)
+    y += np.abs(np.min(y, axis=0))
 
     # Create outliers
     for _ in range(0, n_outliers):
         ind = np.random.randint(0, len(y) - 1)
-        y[ind] += np.random.randint(0, outlier_mean)
+        y[ind, :] += np.random.randint(0, outlier_mean)
 
     # rmsle requires all label be greater than -1.
     assert np.all(y > -1.0)
@@ -60,14 +60,13 @@ def generate_data_for_squared_log_error():
 @pytest.mark.parametrize(
     "objective",
     [
-        "reg:linear",
         "reg:squarederror",
         "reg:squaredlogerror",
         "reg:pseudohubererror",
     ],
 )
 @given(
-    model_format=sampled_from(["binary", "json"]),
+    model_format=sampled_from(["legacy_binary", "json"]),
     pred_margin=sampled_from([True, False]),
     num_boost_round=integers(min_value=5, max_value=50),
     num_parallel_tree=integers(min_value=1, max_value=5),
@@ -135,7 +134,7 @@ def test_xgb_regressor(
     ),
     objective=sampled_from(["multi:softmax", "multi:softprob"]),
     pred_margin=sampled_from([True, False]),
-    model_format=sampled_from(["binary", "json"]),
+    model_format=sampled_from(["legacy_binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
     num_parallel_tree=integers(min_value=1, max_value=5),
 )
@@ -204,7 +203,7 @@ def test_xgb_multiclass_classifier(
         ],
     ),
     pred_margin=sampled_from([True, False]),
-    model_format=sampled_from(["binary", "json"]),
+    model_format=sampled_from(["legacy_binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
     callback=hypothesis_callback(),
 )
@@ -273,7 +272,7 @@ def test_xgb_categorical_split(in_memory):
 
 @given(
     dataset=standard_classification_datasets(n_classes=just(2)),
-    model_format=sampled_from(["binary", "json"]),
+    model_format=sampled_from(["legacy_binary", "json"]),
     num_boost_round=integers(min_value=5, max_value=50),
 )
 @settings(**standard_settings())
@@ -401,22 +400,36 @@ def test_extra_field_in_xgb_json(random_integer_seq, extra_field_type, use_tempf
         n_targets=integers(min_value=2, max_value=10)
     ),
     num_boost_round=integers(min_value=5, max_value=50),
+    num_parallel_tree=integers(min_value=1, max_value=3),
     multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
     pred_margin=sampled_from([True, False]),
     in_memory=sampled_from([True, False]),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_multi_target_binary_classifier(
-    dataset, num_boost_round, multi_strategy, pred_margin, in_memory
+def test_xgb_multi_target_binary_classifier(
+    dataset,
+    num_boost_round,
+    num_parallel_tree,
+    multi_strategy,
+    pred_margin,
+    in_memory,
+    callback,
 ):
     """Test XGBoost with multi-target classification problem"""
     X, y = dataset
+    if multi_strategy == "one_output_per_tree" and not in_memory:
+        model_format = callback.draw(sampled_from(["legacy_binary", "json"]))
+    else:
+        model_format = callback.draw(just("json"))
+
     clf = xgb.XGBClassifier(
         n_estimators=num_boost_round,
         tree_method="hist",
         learning_rate=0.1,
         max_depth=8,
         objective="binary:logistic",
+        num_parallel_tree=num_parallel_tree,
         multi_strategy=multi_strategy,
     )
     clf.fit(X, y)
@@ -425,9 +438,16 @@ def test_multi_target_binary_classifier(
         tl_model = treelite.frontend.from_xgboost(clf.get_booster())
     else:
         with TemporaryDirectory() as tmpdir:
-            model_path = pathlib.Path(tmpdir) / "multi_target.json"
-            clf.save_model(model_path)
-            tl_model = treelite.frontend.load_xgboost_model(str(model_path))
+            if model_format == "json":
+                model_path = pathlib.Path(tmpdir) / "multi_target.json"
+                clf.save_model(model_path)
+                tl_model = treelite.frontend.load_xgboost_model(model_path)
+            else:
+                model_path = pathlib.Path(tmpdir) / "multi_target.model"
+                clf.save_model(model_path)
+                tl_model = treelite.frontend.load_xgboost_model_legacy_binary(
+                    model_path
+                )
 
     out_pred = treelite.gtil.predict(tl_model, X, pred_margin=pred_margin)
     if pred_margin:
@@ -436,3 +456,81 @@ def test_multi_target_binary_classifier(
         expected_pred = clf.predict_proba(X)
     expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
+
+
+@pytest.mark.parametrize(
+    "objective",
+    [
+        "reg:squarederror",
+        "reg:squaredlogerror",
+        "reg:pseudohubererror",
+    ],
+)
+@given(
+    n_targets=integers(min_value=2, max_value=6),
+    pred_margin=sampled_from([True, False]),
+    num_boost_round=integers(min_value=5, max_value=10),
+    num_parallel_tree=integers(min_value=1, max_value=3),
+    multi_strategy=sampled_from(["one_output_per_tree", "multi_output_tree"]),
+    callback=hypothesis_callback(),
+)
+@settings(**standard_settings())
+def test_xgb_multi_target_regressor(
+    n_targets,
+    objective,
+    pred_margin,
+    num_boost_round,
+    num_parallel_tree,
+    multi_strategy,
+    callback,
+):
+    # pylint: disable=too-many-locals
+    """Test XGBoost with regression data"""
+
+    # See https://github.com/dmlc/xgboost/pull/9574
+    if objective == "reg:pseudohubererror":
+        pytest.xfail("XGBoost 2.0 has a bug in the serialization of Pseudo-Huber error")
+
+    if objective == "reg:squaredlogerror":
+        X, y = generate_data_for_squared_log_error(n_targets=n_targets)
+    else:
+        X, y = callback.draw(standard_regression_datasets(n_targets=just(n_targets)))
+    if multi_strategy == "one_output_per_tree":
+        model_format = callback.draw(sampled_from(["legacy_binary", "json"]))
+    else:
+        model_format = callback.draw(just("json"))
+    dtrain = xgb.DMatrix(X, label=y)
+    param = {
+        "max_depth": 8,
+        "eta": 0.1,
+        "verbosity": 0,
+        "objective": objective,
+        "num_parallel_tree": num_parallel_tree,
+        "multi_strategy": multi_strategy,
+    }
+    xgb_model = xgb.train(
+        param,
+        dtrain,
+        num_boost_round=num_boost_round,
+    )
+
+    with TemporaryDirectory() as tmpdir:
+        if model_format == "json":
+            model_name = "model.json"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model(model_path)
+        else:
+            model_name = "model.model"
+            model_path = pathlib.Path(tmpdir) / model_name
+            xgb_model.save_model(model_path)
+            tl_model = treelite.frontend.load_xgboost_model_legacy_binary(model_path)
+        expected_n_trees = num_boost_round * num_parallel_tree
+        if multi_strategy == "one_output_per_tree":
+            expected_n_trees *= n_targets
+        assert len(json.loads(tl_model.dump_as_json())["trees"]) == expected_n_trees
+
+        out_pred = treelite.gtil.predict(tl_model, X, pred_margin=pred_margin)
+        expected_pred = xgb_model.predict(dtrain, output_margin=pred_margin)
+        expected_pred = np.transpose(expected_pred[:, :, np.newaxis], axes=(1, 0, 2))
+        np.testing.assert_almost_equal(out_pred, expected_pred, decimal=3)

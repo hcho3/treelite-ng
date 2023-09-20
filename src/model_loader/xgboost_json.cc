@@ -271,6 +271,9 @@ bool RegTreeHandler::EndObject(std::size_t) {
   if (split_type.empty()) {
     split_type.resize(num_nodes, xgboost::FeatureType::kNumerical);
   }
+  if (output.size_leaf_vector == 0) {
+    output.size_leaf_vector = 1;  // In XGBoost, size_leaf_vector=0 indicates a scalar output
+  }
   if (num_nodes * output.size_leaf_vector != base_weights.size()) {
     TREELITE_LOG(ERROR) << "Field base_weights has an incorrect dimension. Expected: "
                         << (num_nodes * output.size_leaf_vector)
@@ -398,9 +401,6 @@ bool GBTreeModelHandler::EndObject(std::size_t) {
     for (ParsedRegTreeParams const& e : reg_tree_params) {
       TREELITE_CHECK_EQ(e.size_leaf_vector, output.size_leaf_vector)
           << "We currently don't support loading model whose trees have different output size";
-    }
-    if (output.size_leaf_vector == 0) {
-      output.size_leaf_vector = 1;  // In XGBoost, size_leaf_vector=0 indicates a scalar output
     }
   }
   return pop_handler();
@@ -597,13 +597,7 @@ bool LearnerHandler::EndObject(std::size_t) {
       // Grove per target: i-th tree produces output for target (i % num_target)
       target_id = std::vector<std::int32_t>(num_tree);
       for (std::int32_t tree_id = 0; tree_id < num_tree; ++tree_id) {
-        // Validate tree_info
-        auto const grove_id = static_cast<std::uint32_t>(output.tree_info[tree_id]);
-        auto const expected_grove_id = static_cast<std::uint32_t>(tree_id) % num_target;
-        TREELITE_CHECK_EQ(grove_id, expected_grove_id)
-            << "tree_info for Tree " << tree_id << " is not valid! "
-            << "Expected: " << expected_grove_id << ", Got: " << grove_id;
-        target_id[tree_id] = static_cast<std::int32_t>(grove_id);
+        target_id[tree_id] = static_cast<std::int32_t>(output.tree_info[tree_id]);
       }
       leaf_vector_shape[0] = 1;
       leaf_vector_shape[1] = 1;
