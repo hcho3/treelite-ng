@@ -53,7 +53,7 @@ enum class PredictKind : std::int8_t {
 /*! \brief Configuration class */
 struct Configuration {
   int nthread{0};  // use all threads by default
-  PredictKind pred_type{PredictKind::kPredictDefault};
+  PredictKind pred_kind{PredictKind::kPredictDefault};
   Configuration() = default;
   explicit Configuration(std::string const& config_json);
 };

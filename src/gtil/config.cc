@@ -21,13 +21,13 @@ Configuration::Configuration(std::string const& config_json) {
     if (itr != parsed_config.MemberEnd() && itr->value.IsString()) {
       auto value = std::string(itr->value.GetString());
       if (value == "default") {
-        this->pred_type = PredictKind::kPredictDefault;
+        this->pred_kind = PredictKind::kPredictDefault;
       } else if (value == "raw") {
-        this->pred_type = PredictKind::kPredictRaw;
+        this->pred_kind = PredictKind::kPredictRaw;
       } else if (value == "leaf_id") {
-        this->pred_type = PredictKind::kPredictLeafID;
+        this->pred_kind = PredictKind::kPredictLeafID;
       } else if (value == "score_per_tree") {
-        this->pred_type = PredictKind::kPredictPerTree;
+        this->pred_kind = PredictKind::kPredictPerTree;
       } else {
         TREELITE_LOG(FATAL) << "Unknown prediction type: " << value;
       }

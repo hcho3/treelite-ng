@@ -19,7 +19,7 @@ std::vector<std::uint64_t> GetOutputShape(
   auto const num_tree = model.GetNumTree();
   auto const max_num_class = static_cast<std::uint64_t>(
       *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target));
-  switch (config.pred_type) {
+  switch (config.pred_kind) {
   case PredictKind::kPredictDefault:
   case PredictKind::kPredictRaw:
     if (model.num_target > 1) {
@@ -33,7 +33,7 @@ std::vector<std::uint64_t> GetOutputShape(
     return {num_row, num_tree,
         static_cast<std::uint64_t>(model.leaf_vector_shape[0]) * model.leaf_vector_shape[1]};
   default:
-    TREELITE_LOG(FATAL) << "Unsupported model type: " << static_cast<int>(config.pred_type);
+    TREELITE_LOG(FATAL) << "Unsupported model type: " << static_cast<int>(config.pred_kind);
     return {};
   }
 }

@@ -313,14 +313,14 @@ void Predict(Model const& model, InputT const* input, std::uint64_t num_row, Inp
                         << "Expected: " << expected << ", Got: " << got;
   }
   auto thread_config = detail::threading_utils::ThreadConfig(config.nthread);
-  if (config.pred_type == PredictKind::kPredictDefault) {
+  if (config.pred_kind == PredictKind::kPredictDefault) {
     PredictRaw(model, input, num_row, output, thread_config);
     ApplyPredTransform(model, output, num_row, config, thread_config);
-  } else if (config.pred_type == PredictKind::kPredictRaw) {
+  } else if (config.pred_kind == PredictKind::kPredictRaw) {
     PredictRaw(model, input, num_row, output, thread_config);
-  } else if (config.pred_type == PredictKind::kPredictLeafID) {
+  } else if (config.pred_kind == PredictKind::kPredictLeafID) {
     PredictLeaf(model, input, num_row, output, thread_config);
-  } else if (config.pred_type == PredictKind::kPredictPerTree) {
+  } else if (config.pred_kind == PredictKind::kPredictPerTree) {
     PredictScoreByTree(model, input, num_row, output, thread_config);
   } else {
     TREELITE_LOG(FATAL) << "Not implemented";
