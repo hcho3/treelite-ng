@@ -76,27 +76,27 @@ int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n_features, in
 }
 
 int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, int8_t const** default_left,
-    double const** value, int64_t const** n_node_samples, double const** gain,
+    int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
+    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
     double const* base_scores, TreeliteModelHandle* out) {
   API_BEGIN();
   auto model = treelite::model_loader::sklearn::LoadHistGradientBoostingRegressor(n_iter,
-      n_features, node_count, children_left, children_right, feature, threshold, default_left,
-      value, n_node_samples, gain, base_scores);
+      n_features, node_count, nodes, expected_sizeof_node_struct, n_categorical_splits,
+      raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, base_scores);
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }
 
 int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, int n_features, int n_classes,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, int8_t const** default_left,
-    double const** value, int64_t const** n_node_samples, double const** gain,
+    int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
+    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
     double const* base_scores, TreeliteModelHandle* out) {
   API_BEGIN();
   auto model = treelite::model_loader::sklearn::LoadHistGradientBoostingClassifier(n_iter,
-      n_features, n_classes, node_count, children_left, children_right, feature, threshold,
-      default_left, value, n_node_samples, gain, base_scores);
+      n_features, n_classes, node_count, nodes, expected_sizeof_node_struct, n_categorical_splits,
+      raw_left_cat_bitsets, known_cat_bitsets, known_cat_bitsets_offset_map, base_scores);
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }

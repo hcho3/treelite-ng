@@ -243,11 +243,6 @@ class HistGradientBoostingBinaryClassifierMixIn {
         metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
   }
 
-  void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
-      double const** value, [[maybe_unused]] std::int32_t const* n_classes) const {
-    builder.LeafScalar(value[tree_id][node_id]);
-  }
-
  private:
   double base_score_;
 };
@@ -271,11 +266,6 @@ class HistGradientBoostingMulticlassClassifierMixIn {
     std::vector<double> base_scores{base_scores_};
     builder.InitializeMetadata(
         metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
-  }
-
-  void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
-      double const** value, [[maybe_unused]] std::int32_t const* n_classes) const {
-    builder.LeafScalar(value[tree_id][node_id]);
   }
 
  private:
@@ -342,18 +332,45 @@ std::unique_ptr<Model> LoadSKLearnModel(MixIn& mixin, int n_trees, int n_feature
   return builder->CommitModel();
 }
 
-template <typename MixIn>
-std::unique_ptr<treelite::Model> LoadHistGradientBoosting(MixIn& mixin, int n_trees, int n_features,
-    std::int32_t n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
-    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
-    std::int8_t const** default_left, double const** value, std::int64_t const** n_node_samples,
-    double const** gain) {
+#pragma pack(1)
+template <typename FeatureIdT>
+struct HistGradientBoostingNode {
+  double value;
+  std::uint32_t count;
+  FeatureIdT feature_idx;
+  double num_threshold;
+  std::uint8_t missing_go_to_left;
+  std::uint32_t left;
+  std::uint32_t right;
+  double gain;
+  std::uint32_t depth;
+  std::uint8_t is_leaf;
+  std::uint8_t bin_threshold;
+  std::uint8_t is_categorical;
+  std::uint32_t bitset_idx;
+};
+template struct HistGradientBoostingNode<std::int32_t>;
+template struct HistGradientBoostingNode<std::int64_t>;
+#pragma pack()
+
+static_assert(sizeof(HistGradientBoostingNode<std::int32_t>) == 52);
+static_assert(sizeof(HistGradientBoostingNode<std::int64_t>) == 56);
+
+template <typename MixIn, typename FeatureIdT>
+std::unique_ptr<treelite::Model> LoadHistGradientBoostingImpl(MixIn& mixin, int n_trees,
+    int n_features, std::int32_t n_classes, std::int64_t const* node_count,
+    HistGradientBoostingNode<FeatureIdT> const** nodes,
+    std::uint32_t const** raw_left_cat_bitsets) {
   TREELITE_CHECK_GT(n_trees, 0) << "n_trees must be at least 1";
   TREELITE_CHECK_GT(n_features, 0) << "n_features must be at least 1";
 
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64);
   mixin.HandleMetadata(*builder, n_trees, n_features, 1, &n_classes);
+
+  auto check = [](std::uint32_t const* bitmap, int val, unsigned int row) {
+    return (bitmap[8 * row + val / 32] >> (val % 32)) & 1;
+  };
 
   for (int tree_id = 0; tree_id < n_trees; ++tree_id) {
     TREELITE_CHECK_LE(
@@ -363,28 +380,59 @@ std::unique_ptr<treelite::Model> LoadHistGradientBoosting(MixIn& mixin, int n_tr
 
     builder->StartTree();
     for (int node_id = 0; node_id < n_nodes; ++node_id) {
-      int const left_child_id = static_cast<int>(children_left[tree_id][node_id]);
-      int const right_child_id = static_cast<int>(children_right[tree_id][node_id]);
-      std::int64_t const sample_cnt = n_node_samples[tree_id][node_id];
+      auto const node = nodes[tree_id][node_id];
+      std::uint32_t const* left_cat_bitmap = raw_left_cat_bitsets[tree_id];
+      int const left_child_id = static_cast<int>(node.left);
+      int const right_child_id = static_cast<int>(node.right);
       builder->StartNode(node_id);
-      if (left_child_id == -1) {  // leaf node
-        mixin.HandleLeafNode(*builder, tree_id, node_id, value, &n_classes);
+      if (left_child_id <= 0) {  // leaf node
+        builder->LeafScalar(node.value);
       } else {
-        const std::int64_t split_index = feature[tree_id][node_id];
-        double const split_cond = threshold[tree_id][node_id];
-        TREELITE_CHECK_LE(split_index, std::numeric_limits<std::int32_t>::max())
+        TREELITE_CHECK_LE(node.feature_idx, std::numeric_limits<std::int32_t>::max())
             << "split_index too large";
-        builder->NumericalTest(static_cast<std::int32_t>(split_index), split_cond,
-            (default_left[tree_id][node_id] == 1), treelite::Operator::kLE, left_child_id,
-            right_child_id);
-        builder->Gain(gain[tree_id][node_id]);
+        auto const split_index = static_cast<std::int32_t>(node.feature_idx);
+        bool const default_left = node.missing_go_to_left == 1;
+
+        if (node.is_categorical == 1) {
+          std::vector<std::uint32_t> left_categories;
+          for (std::uint32_t i = 0; i < 256; ++i) {
+            if (check(left_cat_bitmap, i, node.bitset_idx)) {
+              left_categories.push_back(i);
+            }
+          }
+          builder->CategoricalTest(
+              split_index, default_left, left_categories, false, left_child_id, right_child_id);
+        } else {
+          double const split_cond = node.num_threshold;
+          builder->NumericalTest(split_index, split_cond, default_left, treelite::Operator::kLE,
+              left_child_id, right_child_id);
+        }
+        builder->Gain(node.gain);
       }
-      builder->DataCount(sample_cnt);
+      builder->DataCount(node.count);
       builder->EndNode();
     }
     builder->EndTree();
   }
   return builder->CommitModel();
+}
+
+template <typename MixIn>
+std::unique_ptr<treelite::Model> LoadHistGradientBoosting(MixIn& mixin, int n_trees, int n_features,
+    std::int32_t n_classes, std::int64_t const* node_count, void const** nodes,
+    int expected_sizeof_node_struct, std::uint32_t const** raw_left_cat_bitsets) {
+  if (expected_sizeof_node_struct == sizeof(HistGradientBoostingNode<std::int32_t>)) {
+    return LoadHistGradientBoostingImpl(mixin, n_trees, n_features, n_classes, node_count,
+        reinterpret_cast<HistGradientBoostingNode<std::int32_t> const**>(nodes),
+        raw_left_cat_bitsets);
+  } else if (expected_sizeof_node_struct == sizeof(HistGradientBoostingNode<std::int64_t>)) {
+    return LoadHistGradientBoostingImpl(mixin, n_trees, n_features, n_classes, node_count,
+        reinterpret_cast<HistGradientBoostingNode<std::int64_t> const**>(nodes),
+        raw_left_cat_bitsets);
+  } else {
+    TREELITE_LOG(FATAL) << "Unexpected size for Node struct: " << expected_sizeof_node_struct;
+    return {};
+  }
 }
 
 }  // namespace detail
@@ -457,32 +505,30 @@ std::unique_ptr<treelite::Model> LoadGradientBoostingClassifier(int n_iter, int 
 }
 
 std::unique_ptr<treelite::Model> LoadHistGradientBoostingRegressor(int n_iter, int n_features,
-    std::int64_t const* node_count, std::int64_t const** children_left,
-    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
-    std::int8_t const** default_left, double const** value, std::int64_t const** n_node_samples,
-    double const** gain, double const* base_scores) {
+    std::int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    std::uint32_t n_categorical_splits, std::uint32_t const** raw_left_cat_bitsets,
+    std::uint32_t const* known_cat_bitsets, std::uint32_t const* known_cat_bitsets_offset_map,
+    double const* base_scores) {
   detail::HistGradientBoostingRegressorMixIn mixin{base_scores[0]};
-  return detail::LoadHistGradientBoosting(mixin, n_iter, n_features, 1, node_count, children_left,
-      children_right, feature, threshold, default_left, value, n_node_samples, gain);
+  return detail::LoadHistGradientBoosting(mixin, n_iter, n_features, 1, node_count, nodes,
+      expected_sizeof_node_struct, raw_left_cat_bitsets);
 }
 
 std::unique_ptr<treelite::Model> LoadHistGradientBoostingClassifier(int n_iter, int n_features,
-    int n_classes, std::int64_t const* node_count, std::int64_t const** children_left,
-    std::int64_t const** children_right, std::int64_t const** feature, double const** threshold,
-    std::int8_t const** default_left, double const** value, std::int64_t const** n_node_samples,
-    double const** gain, double const* base_scores) {
+    int n_classes, int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
+    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
+    double const* base_scores) {
   TREELITE_CHECK_GE(n_classes, 2) << "Number of classes must be at least 2";
   if (n_classes > 2) {
     std::vector<double> base_scores_(base_scores, base_scores + n_classes);
     detail::HistGradientBoostingMulticlassClassifierMixIn mixin{base_scores_};
     return detail::LoadHistGradientBoosting(mixin, n_iter * n_classes, n_features, n_classes,
-        node_count, children_left, children_right, feature, threshold, default_left, value,
-        n_node_samples, gain);
+        node_count, nodes, expected_sizeof_node_struct, raw_left_cat_bitsets);
   } else {
     detail::HistGradientBoostingBinaryClassifierMixIn mixin{base_scores[0]};
-    return detail::LoadHistGradientBoosting(mixin, n_iter, n_features, n_classes, node_count,
-        children_left, children_right, feature, threshold, default_left, value, n_node_samples,
-        gain);
+    return detail::LoadHistGradientBoosting(mixin, n_iter, n_features, n_classes, node_count, nodes,
+        expected_sizeof_node_struct, raw_left_cat_bitsets);
   }
 }
 

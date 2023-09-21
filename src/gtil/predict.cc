@@ -97,10 +97,10 @@ int EvaluateTree(Tree<ThresholdT, LeafOutputT> const& tree, Array1DView<InputT> 
   int node_id = 0;
   while (!tree.IsLeaf(node_id)) {
     auto const split_index = tree.SplitIndex(node_id);
-    if (std::isnan(row(split_index))) {
+    InputT const fvalue = row(split_index);
+    if (std::isnan(fvalue)) {
       node_id = tree.DefaultChild(node_id);
     } else {
-      InputT const fvalue = row(split_index);
       if (tree.NodeType(node_id) == treelite::TreeNodeType::kCategoricalTestNode) {
         node_id = NextNodeCategorical(fvalue, tree.CategoryList(node_id),
             tree.CategoryListRightChild(node_id), tree.LeftChild(node_id),

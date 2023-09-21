@@ -102,14 +102,14 @@ def to_categorical(
     generated_df = pd.DataFrame(df_cols)
     generated_df.sort_index(axis=1, inplace=True)
 
-    # Randomly inject invalid categories only into predict_matrix
+    # Randomly inject invalid categories
     invalid_idx = rng.choice(
         a=cat_cols.size,
         size=ceil(cat_cols.size * invalid_frac),
         replace=False,
         shuffle=False,
     )
-    cat_cols.flat[invalid_idx] += rough_n_categories
+    cat_cols.flat[invalid_idx] += 1000
     generated_array = np.concatenate([cat_cols, features[:, n_categorical:]], axis=1)
     generated_array[:, new_col_idx] = generated_array
 

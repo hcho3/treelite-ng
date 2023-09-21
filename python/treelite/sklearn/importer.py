@@ -18,13 +18,19 @@ class ArrayOfArrays:
     def __init__(self, *, dtype):
         int8_ptr_type = ctypes.POINTER(ctypes.c_int8)
         int64_ptr_type = ctypes.POINTER(ctypes.c_int64)
+        uint32_ptr_type = ctypes.POINTER(ctypes.c_uint32)
         float64_ptr_type = ctypes.POINTER(ctypes.c_double)
+        void_ptr_type = ctypes.c_void_p
         if dtype == np.int64:
             self.ptr_type = int64_ptr_type
         elif dtype == np.float64:
             self.ptr_type = float64_ptr_type
+        elif dtype == np.uint32:
+            self.ptr_type = uint32_ptr_type
         elif dtype == np.int8:
             self.ptr_type = int8_ptr_type
+        elif dtype == "void":
+            self.ptr_type = void_ptr_type
         else:
             raise ValueError(f"dtype {dtype} is not supported")
         self.dtype = dtype
@@ -33,7 +39,8 @@ class ArrayOfArrays:
 
     def add(self, array, *, expected_shape=None):
         """Add an array to the collection"""
-        assert array.dtype == self.dtype
+        if self.dtype != "void":
+            assert array.dtype == self.dtype
         if expected_shape:
             assert (
                 array.shape == expected_shape
@@ -328,45 +335,28 @@ def _import_hist_gradient_boosting(sklearn_model):
     from sklearn.ensemble import HistGradientBoostingRegressor as HistGradientBoostingR
 
     # Arrays to be passed to C API functions
+    (
+        known_cat_bitsets,
+        f_idx_map,
+    ) = sklearn_model._bin_mapper.make_known_categories_bitsets()
+    n_categorical_splits = known_cat_bitsets.shape[0]
+    n_trees = 0
+    nodes = ArrayOfArrays(dtype="void")
+    raw_left_cat_bitsets = ArrayOfArrays(dtype=np.uint32)
     node_count = []
-    children_left = ArrayOfArrays(dtype=np.int64)
-    children_right = ArrayOfArrays(dtype=np.int64)
-    feature = ArrayOfArrays(dtype=np.int64)
-    threshold = ArrayOfArrays(dtype=np.float64)
-    default_left = ArrayOfArrays(dtype=np.int8)
-    value = ArrayOfArrays(dtype=np.float64)
-    n_node_samples = ArrayOfArrays(dtype=np.int64)
-    gain = ArrayOfArrays(dtype=np.float64)
+    itemsize = None
 
     for estimator in sklearn_model._predictors:
         estimator_range = estimator
         for sub_estimator in estimator_range:
-            # Each node has values:
-            # ("value", "count", "feature_idx", "threshold", "missing_go_to_left",
-            #  "left", "right", "gain", "depth", "is_leaf", "bin_threshold",
-            #  "is_categorical", "bitset_idx")
-            nodes = sub_estimator.nodes
-            node_count.append(len(nodes))
-            children_left.add(
-                np.array([-1 if n[9] else n[5] for n in nodes], dtype=np.int64)
-            )
-            children_right.add(
-                np.array([-1 if n[9] else n[6] for n in nodes], dtype=np.int64)
-            )
-            feature.add(np.array([-2 if n[9] else n[2] for n in nodes], dtype=np.int64))
-            threshold.add(np.array([n[3] for n in nodes], dtype=np.float64))
-            default_left.add(np.array([n[4] for n in nodes], dtype=np.int8))
-            value.add(np.array([[n[0]] for n in nodes], dtype=np.float64))
-            n_node_samples.add(np.array([[n[1]] for n in nodes], dtype=np.int64))
-            gain.add(np.array([n[7] for n in nodes], dtype=np.float64))
-
-            # TODO(hcho3): Add support for categorical splits
-            for node in nodes:
-                if node[11]:
-                    raise NotImplementedError(
-                        "Categorical splits are not yet supported for "
-                        "HistGradientBoostingClassifier / HistGradientBoostingRegressor"
-                    )
+            nodes.add(sub_estimator.nodes)
+            raw_left_cat_bitsets.add(sub_estimator.raw_left_cat_bitsets)
+            node_count.append(len(sub_estimator.nodes))
+            n_trees += 1
+            if itemsize is None:
+                itemsize = sub_estimator.nodes.itemsize
+            elif itemsize != sub_estimator.nodes.itemsize:
+                raise RuntimeError("itemsize mismatch")
 
     handle = ctypes.c_void_p()
     if isinstance(sklearn_model, (HistGradientBoostingR,)):
@@ -375,14 +365,12 @@ def _import_hist_gradient_boosting(sklearn_model):
                 ctypes.c_int(sklearn_model.n_iter_),
                 ctypes.c_int(sklearn_model.n_features_in_),
                 c_array(ctypes.c_int64, node_count),
-                children_left.as_c_array(),
-                children_right.as_c_array(),
-                feature.as_c_array(),
-                threshold.as_c_array(),
-                default_left.as_c_array(),
-                value.as_c_array(),
-                n_node_samples.as_c_array(),
-                gain.as_c_array(),
+                nodes.as_c_array(),
+                ctypes.c_int(itemsize),
+                ctypes.c_int32(n_categorical_splits),
+                raw_left_cat_bitsets.as_c_array(),
+                known_cat_bitsets.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                f_idx_map.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),
@@ -396,14 +384,12 @@ def _import_hist_gradient_boosting(sklearn_model):
                 ctypes.c_int(sklearn_model.n_features_in_),
                 ctypes.c_int(len(sklearn_model.classes_)),
                 c_array(ctypes.c_int64, node_count),
-                children_left.as_c_array(),
-                children_right.as_c_array(),
-                feature.as_c_array(),
-                threshold.as_c_array(),
-                default_left.as_c_array(),
-                value.as_c_array(),
-                n_node_samples.as_c_array(),
-                gain.as_c_array(),
+                nodes.as_c_array(),
+                ctypes.c_int(itemsize),
+                ctypes.c_int32(n_categorical_splits),
+                raw_left_cat_bitsets.as_c_array(),
+                known_cat_bitsets.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                f_idx_map.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
                 sklearn_model._baseline_prediction.ctypes.data_as(
                     ctypes.POINTER(ctypes.c_double)
                 ),

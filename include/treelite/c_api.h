@@ -289,24 +289,17 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n
  * \param n_iter Number of boosting iterations
  * \param n_features Number of features in the training data
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
- * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
- *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
- *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
- *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
- *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param default_left default_left[i][k] indicates how the missing value should be handled at
- *                     node k of the i-th tree. This flag is defined if node k is an internal
- *                     (non-leaf) node. If True, the missing value will be associated with the left
- *                     child; if False, the missing value will be associated with the right child.
- * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
- *              if node k is a leaf node.
- * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
- *                       node k of the i-th tree.
- * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
- *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param nodes nodes[i][k] stores the k-th node of the i-th tree.
+ * \param expected_sizeof_node_struct Expected size of Node struct, in bytes
+ * \param n_categorical_splits n_categorical_splits[i] stores the number of categorical splits
+ *                             in the i-th tree.
+ * \param raw_left_cat_bitsets raw_left_cat_bitsets[i][k] stores the bitmaps for node k of tree i.
+ *                             The bitmaps are used to represent categorical tests.
+ *                             Shape of raw_left_cat_bitsets[i]: (n_categorical_splits, 8)
+ * \param known_cat_bitsets Bitsets representing the list of known categories per categorical
+ *                          feature. Shape: (n_categorical_features, 8)
+ * \param known_cat_bitsets_offset_map Map from an original feature index to the corresponding
+ *                                     index in the known_cat_bitsets array. Shape: (n_features,)
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,)
@@ -314,9 +307,9 @@ TREELITE_DLL int TreeliteLoadSKLearnGradientBoostingClassifier(int n_iter, int n
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, int n_features,
-    int64_t const* node_count, int64_t const** children_left, int64_t const** children_right,
-    int64_t const** feature, double const** threshold, int8_t const** default_left,
-    double const** value, int64_t const** n_node_samples, double const** gain,
+    int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
+    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
     double const* base_scores, TreeliteModelHandle* out);
 
 /*!
@@ -326,24 +319,18 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, in
  * \param n_features Number of features in the training data
  * \param n_classes Number of classes in the target variable
  * \param node_count node_count[i] stores the number of nodes in the i-th tree
- * \param children_left children_left[i][k] stores the ID of the left child node of node k of the
- *                      i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param children_right children_right[i][k] stores the ID of the right child node of node k of the
- *                       i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param feature feature[i][k] stores the ID of the feature used in the binary tree split at node k
- *                of the i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param threshold threshold[i][k] stores the threshold used in the binary tree split at node k of
- *                  the i-th tree. This is only defined if node k is an internal (non-leaf) node.
- * \param default_left default_left[i][k] indicates how the missing value should be handled at
- *                     node k of the i-th tree. This flag is defined if node k is an internal
- *                     (non-leaf) node. If True, the missing value will be associated with the left
- *                     child; if False, the missing value will be associated with the right child.
- * \param value value[i][k] stores the leaf output of node k of the i-th tree. This is only defined
- *              if node k is a leaf node.
- * \param n_node_samples n_node_samples[i][k] stores the number of data samples associated with
- *                       node k of the i-th tree.
- * \param gain gain[i][k] stores the gain (reduction of the loss function) associate with node k of
- *             the i-th tree. This is only defined if node k is an internal (non-leaf) node.
+ * \param nodes nodes[i][k] stores the k-th node of the i-th tree.
+ * \param expected_sizeof_node_struct Expected size of Node struct, in bytes
+ * \param n_categorical_splits n_categorical_splits[i] stores the number of categorical splits
+ *                             in the i-th tree.
+ * \param raw_left_cat_bitsets raw_left_cat_bitsets[i][k] stores the bitmaps for node k of tree i.
+ *                             The bitmaps are used to represent categorical tests.
+ *                             Shape of raw_left_cat_bitsets[i]: (n_categorical_splits, 8)
+ *
+ * \param known_cat_bitsets Bitsets representing the list of known categories per categorical
+ *                          feature. Shape: (n_categorical_features, 8)
+ * \param known_cat_bitsets_offset_map Map from an original feature index to the corresponding
+ *                                     index in the known_cat_bitsets array. Shape: (n_features,)
  * \param base_scores Baseline predictions for outputs. At prediction, margin scores will be
  *                    adjusted by this amount before applying the post-processing (link)
  *                    function. Required shape: (1,) for binary classification;
@@ -352,10 +339,10 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingRegressor(int n_iter, in
  * \return 0 for success, -1 for failure
  */
 TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, int n_features,
-    int n_classes, int64_t const* node_count, int64_t const** children_left,
-    int64_t const** children_right, int64_t const** feature, double const** threshold,
-    int8_t const** default_left, double const** value, int64_t const** n_node_samples,
-    double const** gain, double const* base_scores, TreeliteModelHandle* out);
+    int n_classes, int64_t const* node_count, void const** nodes, int expected_sizeof_node_struct,
+    uint32_t n_categorical_splits, uint32_t const** raw_left_cat_bitsets,
+    uint32_t const* known_cat_bitsets, uint32_t const* known_cat_bitsets_offset_map,
+    double const* base_scores, TreeliteModelHandle* out);
 /*! \} */
 
 /*!

@@ -1,5 +1,6 @@
 """Tests for scikit-learn integration"""
 import numpy as np
+import pandas as pd
 import pytest
 import treelite
 from hypothesis import given, settings
@@ -12,6 +13,7 @@ from .hypothesis_util import (
     standard_regression_datasets,
     standard_settings,
 )
+from .util import has_pandas, to_categorical
 
 try:
     from sklearn.ensemble import (
@@ -28,6 +30,8 @@ try:
 except ImportError:
     # Skip this test suite if scikit-learn is not installed
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
+
+pytestmark = pytest.mark.skipif(not has_pandas(), reason="Pandas required")
 
 
 @given(
@@ -142,22 +146,41 @@ def test_skl_converter_iforest(dataset):
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=2)
 
 
-def test_skl_hist_gradient_boosting_with_categorical():
+@given(
+    dataset=standard_classification_datasets(
+        n_classes=integers(min_value=2, max_value=4),
+    ),
+    num_boost_round=integers(min_value=5, max_value=20),
+    use_categorical=sampled_from([True, False]),
+    callback=hypothesis_callback(),
+)
+@settings(**standard_settings())
+def test_skl_hist_gradient_boosting_with_categorical(
+    dataset, num_boost_round, use_categorical, callback
+):
     """Scikit-learn HistGradientBoostingClassifier, with categorical splits"""
-    # We don't yet support HistGradientBoostingClassifier with categorical splits
-    # So make sure that an exception is thrown properly
-    rng = np.random.RandomState(0)
-    n_samples = 1000
-    f1 = rng.rand(n_samples)
-    f2 = rng.randint(4, size=n_samples)
-    X = np.c_[f1, f2]
-    y = np.zeros(shape=n_samples)
-    y[X[:, 1] % 2 == 0] = 1
-    clf = HistGradientBoostingClassifier(max_iter=20, categorical_features=[1])
-    clf.fit(X, y)
-    np.testing.assert_array_equal(clf.is_categorical_, [False, True])
+    X, y = dataset
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        cat_col_bitmap = df.dtypes == "category"
+        categorical_features = [
+            i for i in range(len(cat_col_bitmap)) if cat_col_bitmap[i]
+        ]
+    else:
+        df = pd.DataFrame(X)
+        categorical_features = None
+        X_pred = X.copy()
 
-    with pytest.raises(
-        NotImplementedError, match=r"Categorical splits are not yet supported.*"
-    ):
-        treelite.sklearn.import_model(clf)
+    clf = HistGradientBoostingClassifier(
+        max_iter=num_boost_round,
+        categorical_features=categorical_features,
+        early_stopping=False,
+        max_depth=1,
+    )
+    clf.fit(df, y)
+
+    tl_model = treelite.sklearn.import_model(clf)
+    out_pred = treelite.gtil.predict(tl_model, X_pred)
+    expected_pred = clf.predict_proba(X_pred)[:, 1:]
+    np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
