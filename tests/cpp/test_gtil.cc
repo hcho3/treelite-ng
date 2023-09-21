@@ -15,7 +15,11 @@
 #include <treelite/tree.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <experimental/mdspan>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <string>
@@ -23,9 +27,9 @@
 
 namespace treelite {
 
-class GTIL : public testing::TestWithParam<std::string> {};
+class ParametrizedTestSuite : public testing::TestWithParam<std::string> {};
 
-TEST_P(GTIL, MulticlassClfGrovePerClass) {
+TEST_P(ParametrizedTestSuite, MulticlassClfGrovePerClass) {
   model_builder::Metadata metadata{1, TaskType::kMultiClf, false, 1, {3}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{6, {0, 0, 0, 0, 0, 0}, {0, 1, 2, 0, 1, 2}};
   model_builder::PredTransformFunc pred_transform{"softmax"};
@@ -99,7 +103,7 @@ TEST_P(GTIL, MulticlassClfGrovePerClass) {
   }
 }
 
-TEST_P(GTIL, LeafVectorRF) {
+TEST_P(ParametrizedTestSuite, LeafVectorRF) {
   model_builder::Metadata metadata{1, TaskType::kMultiClf, true, 1, {3}, {1, 3}};
   model_builder::TreeAnnotation tree_annotation{2, {0, 0}, {-1, -1}};
   model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
@@ -159,6 +163,59 @@ TEST_P(GTIL, LeafVectorRF) {
   }
 }
 
-INSTANTIATE_TEST_SUITE_P(/* no prefix */, GTIL, testing::Values("raw", "default", "leaf_id"));
+INSTANTIATE_TEST_SUITE_P(GTIL, ParametrizedTestSuite, testing::Values("raw", "default", "leaf_id"));
+
+TEST(GTIL, InvalidCategoricalInput) {
+  model_builder::Metadata metadata{2, TaskType::kRegressor, false, 1, {1}, {1, 1}};
+  model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
+  model_builder::PredTransformFunc pred_transform{"identity"};
+  std::vector<double> base_scores{0.0};
+  std::unique_ptr<model_builder::ModelBuilder> builder
+      = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
+          tree_annotation, pred_transform, base_scores);
+
+  builder->StartTree();
+  builder->StartNode(0);
+  builder->CategoricalTest(1, true, {0}, false, 1, 2);
+  builder->EndNode();
+  builder->StartNode(1);
+  builder->LeafScalar(-1.0);
+  builder->EndNode();
+  builder->StartNode(2);
+  builder->LeafScalar(1.0);
+  builder->EndNode();
+  builder->EndTree();
+  auto model = builder->CommitModel();
+
+  std::vector<double> categorical_column{-1.0, -0.6, -0.5, 0.0, 0.3, 0.7, 1.0,
+      std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), 1e10,
+      -1e10};
+  std::size_t const n_rows = categorical_column.size();
+  std::vector<double> elems(n_rows * 2);
+  namespace stdex = std::experimental;
+  using Array2DView = stdex::mdspan<double, stdex::dextents<std::size_t, 2>, stdex::layout_right>;
+  auto dmat = Array2DView(elems.data(), n_rows, 2);
+  for (std::size_t i = 0; i < n_rows; ++i) {
+    dmat(i, 0) = 0.0;
+    dmat(i, 1) = categorical_column[i];
+  }
+
+  gtil::Configuration config;
+  config.nthread = 0;
+  config.pred_kind = gtil::PredictKind::kPredictLeafID;
+
+  auto output_shape = gtil::GetOutputShape(*model, n_rows, config);
+  std::vector<double> output(std::accumulate(
+      output_shape.begin(), output_shape.end(), std::uint64_t(1), std::multiplies<>()));
+  gtil::Predict(*model, elems.data(), n_rows, output.data(), config);
+
+  // Negative inputs are mapped to the right child node
+  // 0.3 and 0.7 are mapped to the left child node, since they get rounded toward the zero.
+  // Missing value gets mapped to the left child node, since default_left=True
+  // inf, 1e10, and -1e10 don't match any element of left_categories, so they get mapped to the
+  // right child.
+  std::vector<double> expected_output{2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 2};
+  EXPECT_EQ(output, expected_output);
+}
 
 }  // namespace treelite
