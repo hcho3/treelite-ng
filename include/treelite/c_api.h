@@ -35,6 +35,8 @@
  */
 /*! \brief Handle to a decision tree ensemble model */
 typedef void* TreeliteModelHandle;
+/*! \brief Handle to a model builder object */
+typedef void* TreeliteModelBuilderHandle;
 /*! \brief Handle to a configuration of GTIL predictor */
 typedef void* TreeliteGTILConfigHandle;
 /*! \} */
@@ -349,6 +351,159 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, i
  * \defgroup model_builder Functions to build model objects
  * \{
  */
+/*!
+ * \brief Initialize a model builder object from a JSON string.
+ *
+ * The JSON string must contain all relevant metadata, including:
+ * - threshold_type: Type of thresholds in the tree model
+ * - leaf_output_type: Type of leaf outputs in the tree model
+ * - metadata: Model metadata, consisting of following subfields:
+ *   * num_feature: Number of features
+ *   * task_type: Task type
+ *   * average_tree_output: Whether to average outputs of trees
+ *   * num_target: Number of targets
+ *   * num_class: Number of classes. num_class[i] is the number of classes of target i.
+ *   * leaf_vector_shape: Shape of the output from each leaf node
+ * - tree_annotation: Annotation for individual trees, consisting of following subfields:
+ *   * num_tree: Number of trees
+ *   * target_id: target_id Target that each tree is associated with
+ *   * class_id: Class that each tree is associated with
+ * - pred_transform: Postprocessor for prediction outputs, consisting of following subfields:
+ *   * name: Name of postprocessor
+ *   * config_json: Optional JSON string to configure the postprocessor
+ * - base_scores: Baseline scores for targets and classes, before adding tree outputs.
+ *                Also known as the intercept.
+ * - attributes: Arbitrary JSON object, to be stored in the "attributes" field in the
+ *               model object.
+ *
+ * \param json_str JSON string containing relevant metadata.
+ * \param out Model builder object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteGetModelBuilder(char const* json_str, TreeliteModelBuilderHandle* out);
+/*!
+ * \brief Delete model builder object from memory
+ * \param model_builder Model builder object to be deleted
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDeleteModelBuilder(TreeliteModelBuilderHandle model_builder);
+/*!
+ * \brief Start a new tree
+ * \param model_builder Model builder object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderStartTree(TreeliteModelBuilderHandle model_builder);
+/*!
+ * \brief End the current tree
+ * \param model_builder Model builder object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderEndTree(TreeliteModelBuilderHandle model_builder);
+/*!
+ * \brief Start a new node
+ * \param model_builder Model builder object
+ * \param node_key Integer key that unique identifies the node.
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderStartNode(
+    TreeliteModelBuilderHandle model_builder, int node_key);
+/*!
+ * \brief End the current node
+ * \param model_builder Model builder object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderEndNode(TreeliteModelBuilderHandle model_builder);
+/*!
+ * \brief Declare the current node as a numerical test node, where the test is of form
+ *        [feature value] [cmp] [threshold]. Data points for which the test evaluates to True
+ *        will be mapped to the left child node; all other data points (for which the test
+ *        evaluates to False) will be mapped to the right child node.
+ * \param model_builder Model builder object
+ * \param split_index Feature ID
+ * \param threshold Threshold
+ * \param default_left Whether the missing value should be mapped to the left child
+ * \param cmp Comparison operator
+ * \param left_child_key Integer key that unique identifies the left child node.
+ * \param right_child_key  Integer key that unique identifies the right child node.
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderNumericalTest(TreeliteModelBuilderHandle model_builder,
+    int32_t split_index, double threshold, int default_left, char const* cmp, int left_child_key,
+    int right_child_key);
+/*!
+ * \brief Declare the current node as a categorical test node, where the test is of form
+ *        [feature value] \\in [category list].
+ * \param model_builder Model builder object
+ * \param split_index Feature ID
+ * \param default_left Whether the missing value should be mapped to the left child
+ * \param category_list List of categories to be tested for match
+ * \param category_list_len Length of category_list
+ * \param category_list_right_child Whether the data points for which the test evaluates to True
+ *                                  should be mapped to the right child or the left child.
+ * \param left_child_key Integer key that unique identifies the left child node.
+ * \param right_child_key Integer key that unique identifies the right child node.
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderCategoricalTest(TreeliteModelBuilderHandle model_builder,
+    int32_t split_index, int default_left, uint32_t const* category_list, size_t category_list_len,
+    int category_list_right_child, int left_child_key, int right_child_key);
+/*!
+ * \brief Declare the current node as a leaf node with a scalar output
+ * \param model_builder Model builder object
+ * \param leaf_value Value of leaf output
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderLeafScalar(
+    TreeliteModelBuilderHandle model_builder, double leaf_value);
+/*!
+ * \brief Declare the current node as a leaf node with a vector output (float32)
+ * \param model_builder Model builder object
+ * \param leaf_vector Value of leaf output
+ * \param leaf_vector_len Length of leaf_vector
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderLeafVectorFloat32(
+    TreeliteModelBuilderHandle model_builder, float const* leaf_vector, size_t leaf_vector_len);
+/*!
+ * \brief Declare the current node as a leaf node with a vector output (float64)
+ * \param model_builder Model builder object
+ * \param leaf_vector Value of leaf output
+ * \param leaf_vector_len Length of leaf_vector
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderLeafVectorFloat64(
+    TreeliteModelBuilderHandle model_builder, double const* leaf_vector, size_t leaf_vector_len);
+/*!
+ * \brief Specify the gain (loss reduction) that's resulted from the current split.
+ * \param model_builder Model builder object
+ * \param gain Gain (loss reduction)
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderGain(TreeliteModelBuilderHandle model_builder, double gain);
+/*!
+ * \brief Specify the number of data points (samples) that are mapped to the current node.
+ * \param model_builder Model builder object
+ * \param data_count Number of data points
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderDataCount(
+    TreeliteModelBuilderHandle model_builder, uint64_t data_count);
+/*!
+ * \brief Specify the weighted sample count or the sum of Hessians for the data points that
+ *        are mapped to the current node.
+ * \param model_builder Model builder object
+ * \param sum_hess Weighted sample count or the sum of Hessians
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteModelBuilderSumHess(
+    TreeliteModelBuilderHandle model_builder, double sum_hess);
+/*!
+ * \brief Conclude model building and obtain the final model object.
+ * \param model_builder Model builder object
+ * \param out Final model object
+ */
+TREELITE_DLL int TreeliteModelBuilderCommitModel(
+    TreeliteModelBuilderHandle model_builder, TreeliteModelHandle* out);
 /*! \} */
 
 /*!

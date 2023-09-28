@@ -365,6 +365,8 @@ class ModelBuilderImpl : public ModelBuilder {
     model_->base_scores = base_scores;
     if (attributes) {
       model_->attributes = attributes.value();
+    } else {
+      model_->attributes = "{}";
     }
 
     expected_num_tree_ = tree_annotation.num_tree;
@@ -418,12 +420,12 @@ std::unique_ptr<ModelBuilder> GetModelBuilder(std::string const& json_str) {
       json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "threshold_type"));
   auto leaf_output_type = TypeInfoFromString(
       json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "leaf_output_type"));
-  auto metadata = json_parse::ParseMetadata(parsed_json);
-  auto tree_annotation = json_parse::ParseTreeAnnotation(parsed_json);
-  auto pred_transform = json_parse::ParsePredTransformFunc(parsed_json);
+  auto metadata = json_parse::ParseMetadata(parsed_json, "metadata");
+  auto tree_annotation = json_parse::ParseTreeAnnotation(parsed_json, "tree_annotation");
+  auto pred_transform = json_parse::ParsePredTransformFunc(parsed_json, "pred_transform");
   auto base_scores
       = json_parse::ObjectMemberHandler<std::vector<double>>::Get(parsed_json, "base_scores");
-  auto attributes = json_parse::ParseAttributes(parsed_json);
+  auto attributes = json_parse::ParseAttributes(parsed_json, "attributes");
 
   return GetModelBuilder(threshold_type, leaf_output_type, metadata, tree_annotation,
       pred_transform, base_scores, attributes);

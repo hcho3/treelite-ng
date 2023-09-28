@@ -46,7 +46,7 @@ namespace treelite {
 TEST(ModelBuilder, OrphanedNodes) {
   model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
-  model_builder::PredTransformFunc pred_transform{"softmax"};
+  model_builder::PredTransformFunc pred_transform{"sigmoid"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
@@ -64,7 +64,7 @@ TEST(ModelBuilder, OrphanedNodes) {
 TEST(ModelBuilder, InvalidNodeID) {
   model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
-  model_builder::PredTransformFunc pred_transform{"softmax"};
+  model_builder::PredTransformFunc pred_transform{"sigmoid"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
@@ -211,7 +211,7 @@ TEST(ModelBuilderJSONParsing, Metadata) {
   std::vector<std::int32_t> const expected_num_class{1};
   std::array<std::int32_t, 2> const expected_leaf_vector_shape{1, 1};
 
-  auto metadata = model_builder::detail::json_parse::ParseMetadata(parsed_json);
+  auto metadata = model_builder::detail::json_parse::ParseMetadata(parsed_json, "metadata");
   EXPECT_EQ(metadata.num_feature, 4);
   EXPECT_EQ(metadata.task_type, TaskType::kBinaryClf);
   EXPECT_FALSE(metadata.average_tree_output);
@@ -237,7 +237,8 @@ TEST(ModelBuilderJSONParsing, TreeAnnotation) {
   std::vector<std::int32_t> const expected_target_id{0, 0};
   std::vector<std::int32_t> const expected_class_id{0, 1};
 
-  auto tree_annotation = model_builder::detail::json_parse::ParseTreeAnnotation(parsed_json);
+  auto tree_annotation
+      = model_builder::detail::json_parse::ParseTreeAnnotation(parsed_json, "tree_annotation");
   EXPECT_EQ(tree_annotation.target_id, expected_target_id);
   EXPECT_EQ(tree_annotation.class_id, expected_class_id);
 }
@@ -257,7 +258,8 @@ TEST(ModelBuilderJSONParsing, PredTransformFunc) {
   parsed_json.Parse(json_str);
   AssertDocumentValid(parsed_json);
 
-  auto pred_transform = model_builder::detail::json_parse::ParsePredTransformFunc(parsed_json);
+  auto pred_transform
+      = model_builder::detail::json_parse::ParsePredTransformFunc(parsed_json, "pred_transform");
   EXPECT_EQ(pred_transform.name, "sigmoid");
 
   std::string const expected_config_json_str = R"(
@@ -282,7 +284,7 @@ TEST(ModelBuilderJSONParsing, Attributes) {
   parsed_json.Parse(json_str);
   AssertDocumentValid(parsed_json);
 
-  auto attributes = model_builder::detail::json_parse::ParseAttributes(parsed_json);
+  auto attributes = model_builder::detail::json_parse::ParseAttributes(parsed_json, "attributes");
   EXPECT_TRUE(attributes.has_value());
 
   std::string const expected_attributes_str = R"(
@@ -306,7 +308,7 @@ TEST(ModelBuilderJSONParsing, AttributesEmpty) {
     parsed_json.Parse(json_str);
     AssertDocumentValid(parsed_json);
 
-    auto attributes = model_builder::detail::json_parse::ParseAttributes(parsed_json);
+    auto attributes = model_builder::detail::json_parse::ParseAttributes(parsed_json, "attributes");
     EXPECT_TRUE(attributes.has_value());
     std::string const expected_attributes_str = "{}";
     AssertJSONStringsEqual(attributes.value(), expected_attributes_str);
@@ -317,7 +319,7 @@ TEST(ModelBuilderJSONParsing, AttributesEmpty) {
     parsed_json.Parse(json_str);
     AssertDocumentValid(parsed_json);
 
-    auto attributes = model_builder::detail::json_parse::ParseAttributes(parsed_json);
+    auto attributes = model_builder::detail::json_parse::ParseAttributes(parsed_json, "attributes");
     EXPECT_FALSE(attributes.has_value());
   }
 }
@@ -364,12 +366,12 @@ TEST(ModelBuilderJSONParsing, Combined) {
       json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "threshold_type"));
   auto const leaf_output_type = TypeInfoFromString(
       json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "leaf_output_type"));
-  auto const metadata = json_parse::ParseMetadata(parsed_json);
-  auto const tree_annotation = json_parse::ParseTreeAnnotation(parsed_json);
-  auto const pred_transform = json_parse::ParsePredTransformFunc(parsed_json);
+  auto const metadata = json_parse::ParseMetadata(parsed_json, "metadata");
+  auto const tree_annotation = json_parse::ParseTreeAnnotation(parsed_json, "tree_annotation");
+  auto const pred_transform = json_parse::ParsePredTransformFunc(parsed_json, "pred_transform");
   auto const base_scores
       = json_parse::ObjectMemberHandler<std::vector<double>>::Get(parsed_json, "base_scores");
-  auto const attributes = json_parse::ParseAttributes(parsed_json);
+  auto const attributes = json_parse::ParseAttributes(parsed_json, "attributes");
 
   std::vector<std::int32_t> const expected_num_class{1};
   std::array<std::int32_t, 2> const expected_leaf_vector_shape{1, 1};

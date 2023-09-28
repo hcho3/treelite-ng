@@ -70,16 +70,3 @@ def _check_call(ret: int) -> None:
     """
     if ret != 0:
         raise TreeliteError(_LIB.TreeliteGetLastError().decode("utf-8"))
-
-
-def c_array(ctype, values):
-    """
-    Convert a Python byte array to C array
-
-    WARNING
-    -------
-    DO NOT USE THIS FUNCTION if performance is critical. Instead, use np.array(*)
-    with dtype option to explicitly convert type and then use
-    ndarray.ctypes.data_as(*) to expose underlying buffer as C pointer.
-    """
-    return (ctype * len(values))(*values)

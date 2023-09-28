@@ -18,7 +18,7 @@ class Model:
     Parameters
     ----------
     handle :
-        Initial value of model handle
+        Handle to C++ object
     """
 
     def __init__(self, *, handle: Optional[Any] = None):
@@ -162,7 +162,7 @@ class Model:
         json_str = ctypes.c_char_p()
         _check_call(
             _LIB.TreeliteDumpAsJSON(
-                self._handle,
+                self.handle,
                 ctypes.c_int(1 if pretty_print else 0),
                 ctypes.byref(json_str),
             )

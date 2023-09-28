@@ -163,10 +163,10 @@ auto const& GetMember(DocumentT const& obj, std::string const& field_name) {
 }
 
 template <typename DocumentT>
-Metadata ParseMetadata(DocumentT const& obj) {
+Metadata ParseMetadata(DocumentT const& obj, std::string const& field_name) {
   TREELITE_CHECK(obj.IsObject()) << "Expected an object";
 
-  auto const& obj_ = GetMember(obj, "metadata");
+  auto const& obj_ = GetMember(obj, field_name);
   return Metadata{ObjectMemberHandler<std::int32_t>::Get(obj_, "num_feature"),
       TaskTypeFromString(ObjectMemberHandler<std::string>::Get(obj_, "task_type")),
       ObjectMemberHandler<bool>::Get(obj_, "average_tree_output"),
@@ -176,17 +176,17 @@ Metadata ParseMetadata(DocumentT const& obj) {
 }
 
 template <typename DocumentT>
-TreeAnnotation ParseTreeAnnotation(DocumentT const& obj) {
-  auto const& obj_ = GetMember(obj, "tree_annotation");
+TreeAnnotation ParseTreeAnnotation(DocumentT const& obj, std::string const& field_name) {
+  auto const& obj_ = GetMember(obj, field_name);
   return TreeAnnotation{ObjectMemberHandler<std::int32_t>::Get(obj_, "num_tree"),
       ObjectMemberHandler<std::vector<std::int32_t>>::Get(obj_, "target_id"),
       ObjectMemberHandler<std::vector<std::int32_t>>::Get(obj_, "class_id")};
 }
 
 template <typename DocumentT>
-PredTransformFunc ParsePredTransformFunc(DocumentT const& obj) {
+PredTransformFunc ParsePredTransformFunc(DocumentT const& obj, std::string const& field_name) {
   std::string config_json;
-  auto const& obj_ = GetMember(obj, "pred_transform");
+  auto const& obj_ = GetMember(obj, field_name);
   auto itr = obj_.FindMember("config");
   if (itr != obj_.MemberEnd()) {
     TREELITE_CHECK(itr->value.IsObject()) << "Expected an object for field 'config'";
@@ -202,11 +202,11 @@ PredTransformFunc ParsePredTransformFunc(DocumentT const& obj) {
 }
 
 template <typename DocumentT>
-std::optional<std::string> ParseAttributes(DocumentT const& obj) {
+std::optional<std::string> ParseAttributes(DocumentT const& obj, std::string const& field_name) {
   std::optional<std::string> result;
-  auto itr = obj.FindMember("attributes");
+  auto itr = obj.FindMember(field_name);
   if (itr != obj.MemberEnd()) {
-    TREELITE_CHECK(itr->value.IsObject()) << "Expected an object for field 'attributes'";
+    TREELITE_CHECK(itr->value.IsObject()) << "Expected an object for field '" << field_name << "'";
     rapidjson::StringBuffer buffer;
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
     itr->value.Accept(writer);

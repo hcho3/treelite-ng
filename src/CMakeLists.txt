@@ -86,6 +86,7 @@ target_sources(objtreelite
     c_api/gtil.cc
     c_api/logging.cc
     c_api/model.cc
+    c_api/model_builder.cc
     c_api/model_loader.cc
     c_api/sklearn.cc
     enum/operator.cc

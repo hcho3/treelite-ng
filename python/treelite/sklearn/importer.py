@@ -5,8 +5,9 @@ import ctypes
 import numpy as np
 from sklearn.dummy import DummyClassifier, DummyRegressor
 
-from ..core import _LIB, TreeliteError, _check_call, c_array
+from ..core import _LIB, TreeliteError, _check_call
 from ..frontend import Model
+from ..util import c_array
 from .isolation_forest import calculate_depths, expected_depth
 
 
