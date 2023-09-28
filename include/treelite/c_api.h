@@ -346,6 +346,12 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, i
 /*! \} */
 
 /*!
+ * \defgroup model_builder Functions to build model objects
+ * \{
+ */
+/*! \} */
+
+/*!
  * \defgroup model_manager Functions to query and modify model objects
  * \{
  */

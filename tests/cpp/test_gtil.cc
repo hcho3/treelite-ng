@@ -30,13 +30,29 @@ namespace treelite {
 class ParametrizedTestSuite : public testing::TestWithParam<std::string> {};
 
 TEST_P(ParametrizedTestSuite, MulticlassClfGrovePerClass) {
-  model_builder::Metadata metadata{1, TaskType::kMultiClf, false, 1, {3}, {1, 1}};
-  model_builder::TreeAnnotation tree_annotation{6, {0, 0, 0, 0, 0, 0}, {0, 1, 2, 0, 1, 2}};
-  model_builder::PredTransformFunc pred_transform{"softmax"};
-  std::vector<double> base_scores{0.3, 0.2, 0.5};
-  std::unique_ptr<model_builder::ModelBuilder> builder
-      = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
-          tree_annotation, pred_transform, base_scores);
+  std::unique_ptr<model_builder::ModelBuilder> builder = model_builder::GetModelBuilder(R"(
+    {
+      "threshold_type": "float32",
+      "leaf_output_type": "float32",
+      "metadata": {
+        "num_feature": 1,
+        "task_type": "kMultiClf",
+        "average_tree_output": false,
+        "num_target": 1,
+        "num_class": [3],
+        "leaf_vector_shape": [1, 1]
+      },
+      "tree_annotation": {
+        "num_tree": 6,
+        "target_id": [0, 0, 0, 0, 0, 0],
+        "class_id": [0, 1, 2, 0, 1, 2]
+      },
+      "pred_transform": {
+        "name": "softmax"
+      },
+      "base_scores": [0.3, 0.2, 0.5]
+    }
+  )");
   auto make_tree_stump = [&](float left_child_val, float right_child_val) {
     builder->StartTree();
     builder->StartNode(0);

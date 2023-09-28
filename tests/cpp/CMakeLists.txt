@@ -21,5 +21,5 @@ target_sources(treelite_cpp_test
 )
 
 target_include_directories(treelite_cpp_test
-    PRIVATE  ${PROJECT_SOURCE_DIR}/src/frontend ${PROJECT_SOURCE_DIR}/src/
+    PRIVATE  ${PROJECT_SOURCE_DIR}/src/
 )

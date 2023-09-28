@@ -27,8 +27,8 @@ TreeAnnotation::TreeAnnotation(std::int32_t num_tree, std::vector<std::int32_t> 
 }
 
 PredTransformFunc::PredTransformFunc(
-    std::string const& pred_transform_name, std::optional<std::string> config_json)
-    : pred_transform_name(pred_transform_name), config_json(config_json ? *config_json : "{}") {}
+    std::string const& name, std::optional<std::string> config_json)
+    : name(name), config_json(config_json ? *config_json : "{}") {}
 
 Metadata::Metadata(std::int32_t num_feature, TaskType task_type, bool average_tree_output,
     std::int32_t num_target, std::vector<std::int32_t> const& num_class,

@@ -1,0 +1,1 @@
+"""Treelite Model builder class"""

@@ -99,6 +99,7 @@ target_sources(objtreelite
     gtil/predict.cc
     model_builder/metadata.cc
     model_builder/model_builder.cc
+    model_builder/detail/json_parsing.h
     model_loader/sklearn.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc

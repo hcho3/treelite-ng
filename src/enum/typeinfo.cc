@@ -36,7 +36,7 @@ TypeInfo TypeInfoFromString(std::string const& str) {
   } else if (str == "float64") {
     return TypeInfo::kFloat64;
   } else {
-    TREELITE_LOG(FATAL) << "Unrecognized type";
+    TREELITE_LOG(FATAL) << "Unrecognized type: " << str;
     return TypeInfo::kInvalid;
   }
 }

@@ -20,34 +20,29 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <variant>
 #include <vector>
+
+#include "./detail/json_parsing.h"
 
 namespace treelite::model_builder {
 
 namespace detail {
 
-void ConfigurePredTransform(Model* model, PredTransformFunc pred_transform) {
+void ConfigurePredTransform(Model* model, PredTransformFunc const& pred_transform) {
   rapidjson::Document config;
   config.Parse(pred_transform.config_json);
   TREELITE_CHECK(!config.HasParseError())
       << "Error when parsing JSON config: offset " << config.GetErrorOffset() << ", "
       << rapidjson::GetParseError_En(config.GetParseError());
-  if (pred_transform.pred_transform_name == "sigmoid") {
-    auto itr = config.FindMember("sigmoid_alpha");
-    if (itr != config.MemberEnd() && itr->value.IsFloat()) {
-      model->sigmoid_alpha = itr->value.GetFloat();
-    } else {
-      model->sigmoid_alpha = 1.0f;
-    }
+  TREELITE_CHECK(config.IsObject()) << "Expected an object";
+  if (pred_transform.name == "sigmoid") {
+    model->sigmoid_alpha
+        = json_parse::ObjectMemberHandler<float>::Get(config, "sigmoid_alpha", 1.0f);
   }
-  if (pred_transform.pred_transform_name == "exponential_standard_ratio") {
-    auto itr = config.FindMember("ratio_c");
-    if (itr != config.MemberEnd() && itr->value.IsFloat()) {
-      model->ratio_c = itr->value.GetFloat();
-    } else {
-      model->ratio_c = 1.0f;
-    }
+  if (pred_transform.name == "exponential_standard_ratio") {
+    model->ratio_c = json_parse::ObjectMemberHandler<float>::Get(config, "ratio_c", 1.0f);
   }
 }
 
@@ -361,7 +356,7 @@ class ModelBuilderImpl : public ModelBuilder {
     }
     model_->class_id = tree_annotation.class_id;
 
-    model_->pred_transform = pred_transform.pred_transform_name;
+    model_->pred_transform = pred_transform.name;
     detail::ConfigurePredTransform(model_.get(), pred_transform);
 
     const std::int32_t max_num_class
@@ -408,6 +403,30 @@ std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo 
   } else {
     return std::make_unique<detail::ModelBuilderImpl<double, double>>();
   }
+}
+
+std::unique_ptr<ModelBuilder> GetModelBuilder(std::string const& json_str) {
+  rapidjson::Document parsed_json;
+  parsed_json.Parse(json_str);
+  TREELITE_CHECK(!parsed_json.HasParseError())
+      << "Error when parsing JSON string: offset " << parsed_json.GetErrorOffset() << ", "
+      << rapidjson::GetParseError_En(parsed_json.GetParseError());
+
+  namespace json_parse = detail::json_parse;
+
+  auto threshold_type = TypeInfoFromString(
+      json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "threshold_type"));
+  auto leaf_output_type = TypeInfoFromString(
+      json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "leaf_output_type"));
+  auto metadata = json_parse::ParseMetadata(parsed_json);
+  auto tree_annotation = json_parse::ParseTreeAnnotation(parsed_json);
+  auto pred_transform = json_parse::ParsePredTransformFunc(parsed_json);
+  auto base_scores
+      = json_parse::ObjectMemberHandler<std::vector<double>>::Get(parsed_json, "base_scores");
+  auto attributes = json_parse::ParseAttributes(parsed_json);
+
+  return GetModelBuilder(threshold_type, leaf_output_type, metadata, tree_annotation,
+      pred_transform, base_scores, attributes);
 }
 
 }  // namespace treelite::model_builder

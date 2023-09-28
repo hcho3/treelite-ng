@@ -613,8 +613,7 @@ bool LearnerHandler::EndObject(std::size_t) {
   // 1.0 it's the original value provided by user.
   bool const need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
   if (need_transform_to_margin) {
-    base_score
-        = xgboost::TransformBaseScoreToMargin(pred_transform.pred_transform_name, base_score);
+    base_score = xgboost::TransformBaseScoreToMargin(pred_transform.name, base_score);
   }
   // For now, XGBoost produces a scalar base_score
   // Assume: Either num_target or num_class must be 1

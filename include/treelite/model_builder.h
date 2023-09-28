@@ -74,10 +74,10 @@ struct TreeAnnotation {
 };
 
 struct PredTransformFunc {
-  std::string pred_transform_name{};
+  std::string name{};
   std::string config_json{};
-  explicit PredTransformFunc(std::string const& pred_transform_name,
-      std::optional<std::string> config_json = std::nullopt);
+  explicit PredTransformFunc(
+      std::string const& name, std::optional<std::string> config_json = std::nullopt);
 };
 
 struct Metadata {
@@ -98,6 +98,9 @@ std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo 
     std::optional<std::string> const& attributes = std::nullopt);
 std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type);
 // Metadata will be provided later
+
+std::unique_ptr<ModelBuilder> GetModelBuilder(std::string const& json_str);
+// Initialize metadata from a JSON string
 
 }  // namespace model_builder
 }  // namespace treelite

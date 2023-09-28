@@ -454,7 +454,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   bool const need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
     base_score = treelite::model_loader::detail::xgboost::TransformBaseScoreToMargin(
-        pred_transform.pred_transform_name, base_score);
+        pred_transform.name, base_score);
   }
   std::size_t const len_base_scores = num_target * num_class;
   std::vector<double> base_scores(len_base_scores, base_score);
