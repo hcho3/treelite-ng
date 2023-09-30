@@ -47,3 +47,22 @@ int TreeliteLoadXGBoostModelFromString(
   *out = static_cast<TreeliteModelHandle>(model.release());
   API_END();
 }
+
+int TreeliteLoadLightGBMModel(
+    char const* filename, [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {
+  // config_json is unused for now
+  API_BEGIN();
+  std::unique_ptr<treelite::Model> model = treelite::model_loader::LoadLightGBMModel(filename);
+  *out = static_cast<TreeliteModelHandle>(model.release());
+  API_END();
+}
+
+TREELITE_DLL int TreeliteLoadLightGBMModelFromString(
+    char const* model_str, [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {
+  // config_json is unused for now
+  API_BEGIN();
+  std::unique_ptr<treelite::Model> model
+      = treelite::model_loader::LoadLightGBMModelFromString(model_str);
+  *out = static_cast<TreeliteModelHandle>(model.release());
+  API_END();
+}

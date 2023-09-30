@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2021-2023 by Contributors
  * \file sklearn.cc
- * \brief Frontend for scikit-learn models
+ * \brief Model loader for scikit-learn models
  * \author Hyunsu Cho
  */
 #include <treelite/enum/operator.h>

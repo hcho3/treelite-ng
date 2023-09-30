@@ -95,7 +95,10 @@ class Model:
                     filename, allow_unknown_field=allow_unknown_field
                 )
             )
-        raise NotImplementedError("Not implemented yet")
+        if model_format == "lightgbm":
+            deprecation_warning("load_lightgbm_model")
+            return Model(handle=compat.load_lightgbm_model(filename))
+        raise ValueError(f"Unknown model format {model_format}")
 
     @classmethod
     def from_xgboost(cls, booster: Any) -> Model:
@@ -113,6 +116,13 @@ class Model:
         model :
             Loaded model
         """
+        warnings.warn(
+            (
+                "treelite.Model.from_xgboost() is deprecated. "
+                "Use treelite.frontend.from_xgboost() instead."
+            ),
+            FutureWarning,
+        )
         return Model(handle=compat.from_xgboost(booster))
 
     @classmethod
@@ -138,11 +148,43 @@ class Model:
         model
             Loaded model
         """
+        warnings.warn(
+            (
+                "treelite.Model.from_xgboost_json() is deprecated. "
+                "Use treelite.frontend.from_xgboost_json() instead."
+            ),
+            FutureWarning,
+        )
         return Model(
             handle=compat.from_xgboost_json(
                 model_json_str, allow_unknown_field=allow_unknown_field
             )
         )
+
+    @classmethod
+    def from_lightgbm(cls, booster):
+        """
+        Deprecated. Please use \ref ~treelite.frontend.from_lightgbm instead.
+        Load a tree ensemble model from a LightGBM Booster object
+
+        Parameters
+        ----------
+        booster : object of type :py:class:`lightgbm.Booster`
+            Python handle to LightGBM model
+
+        Returns
+        -------
+        model : :py:class:`Model` object
+            loaded model
+        """
+        warnings.warn(
+            (
+                "treelite.Model.from_lightgbm() is deprecated. "
+                "Use treelite.frontend.from_lightgbm() instead."
+            ),
+            FutureWarning,
+        )
+        return Model(handle=compat.from_lightgbm(booster))
 
     def dump_as_json(self, *, pretty_print: bool = True) -> str:
         """

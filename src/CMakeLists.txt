@@ -1,7 +1,7 @@
 # Object library
 
 add_library(objtreelite OBJECT)
-target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson std::mdspan)
+target_link_libraries(objtreelite PRIVATE fmt::fmt-header-only RapidJSON::rapidjson std::mdspan)
 
 if(USE_OPENMP)
   if(APPLE)
@@ -101,10 +101,12 @@ target_sources(objtreelite
     model_builder/metadata.cc
     model_builder/model_builder.cc
     model_builder/detail/json_parsing.h
+    model_loader/lightgbm.cc
     model_loader/sklearn.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
     model_loader/detail/common.h
+    model_loader/detail/lightgbm.h
     model_loader/detail/xgboost.cc
     model_loader/detail/xgboost.h
     model_loader/detail/xgboost_json.h

@@ -68,6 +68,30 @@ def load_xgboost_model(
     )
 
 
+def load_lightgbm_model(filename: Union[str, pathlib.Path]) -> Model:
+    """
+    Load a tree ensemble model from a LightGBM model file.
+
+    Parameters
+    ----------
+    filename :
+        Path to model file
+
+    Returns
+    -------
+    model :
+        Loaded model
+
+    Example
+    -------
+
+    .. code-block:: python
+
+       lgb_model = treelite.frontend.load_lightgbm_model("lightgbm_model.txt")
+    """
+    return Model(handle=compat.load_lightgbm_model(str(filename)))
+
+
 def from_xgboost(booster: Any) -> Model:
     """
     Load a tree ensemble model from an XGBoost Booster object
@@ -112,9 +136,28 @@ def from_xgboost_json(
     )
 
 
+def from_lightgbm(booster: Any) -> Model:
+    """
+    Load a tree ensemble model from a LightGBM Booster object
+
+    Parameters
+    ----------
+    booster : object of type :py:class:`lightgbm.Booster`
+        Python handle to LightGBM model
+
+    Returns
+    -------
+    model :
+        loaded model
+    """
+    return Model(handle=compat.from_lightgbm(booster))
+
+
 __all__ = [
     "load_xgboost_model_legacy_binary",
     "load_xgboost_model",
+    "load_lightgbm_model",
     "from_xgboost",
     "from_xgboost_json",
+    "from_lightgbm",
 ]

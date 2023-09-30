@@ -44,6 +44,18 @@ def load_xgboost_model(filename: str, *, allow_unknown_field: bool) -> Any:
     return handle
 
 
+def load_lightgbm_model(filename: str) -> Any:
+    """
+    Load a tree ensemble model from a LightGBM model file
+
+    TODO(hcho3): Move the implementation to treelite.frontend once
+                 Model.load() is removed.
+    """
+    handle = ctypes.c_void_p()
+    _check_call(_LIB.TreeliteLoadLightGBMModel(c_str(filename)))
+    return handle
+
+
 def from_xgboost_json(
     model_json_str: Union[str, bytes, bytearray],
     *,
@@ -116,6 +128,32 @@ def from_xgboost(booster: Any) -> Any:
     _check_call(
         _LIB.TreeliteLoadXGBoostModelLegacyBinaryFromMemoryBuffer(
             ptr, length, ctypes.byref(handle)
+        )
+    )
+    return handle
+
+
+def from_lightgbm(booster: Any) -> Any:
+    """
+    Load a tree ensemble model from a LightGBM Booster object
+
+    TODO(hcho3): Move the implementation to treelite.frontend once
+                 Model.from_lightgbm() is removed.
+    """
+    handle = ctypes.c_void_p()
+    # Attempt to import lightgbm
+    try:
+        import lightgbm
+    except ImportError as e:
+        raise TreeliteError(
+            "lightgbm module must be installed to read from `lightgbm.Booster` object"
+        ) from e
+    if not isinstance(booster, lightgbm.Booster):
+        raise ValueError("booster must be of type `lightgbm.Booster`")
+    model_str = booster.model_to_string()
+    _check_call(
+        _LIB.TreeliteLoadLightGBMModelFromString(
+            c_str(model_str), c_str("{}"), ctypes.byref(handle)
         )
     )
     return handle

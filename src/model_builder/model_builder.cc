@@ -37,7 +37,7 @@ void ConfigurePredTransform(Model* model, PredTransformFunc const& pred_transfor
       << "Error when parsing JSON config: offset " << config.GetErrorOffset() << ", "
       << rapidjson::GetParseError_En(config.GetParseError());
   TREELITE_CHECK(config.IsObject()) << "Expected an object";
-  if (pred_transform.name == "sigmoid") {
+  if (pred_transform.name == "sigmoid" || pred_transform.name == "multiclass_ova") {
     model->sigmoid_alpha
         = json_parse::ObjectMemberHandler<float>::Get(config, "sigmoid_alpha", 1.0f);
   }

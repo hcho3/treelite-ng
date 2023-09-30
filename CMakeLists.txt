@@ -116,6 +116,9 @@ if(SKBUILD)
   )
 else()
   set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson mdspan)
+  if(NOT FMTLIB_FROM_SYSTEM_ROOT)
+    list(APPEND INSTALL_TARGETS fmt-header-only)
+  endif()
   install(TARGETS ${INSTALL_TARGETS}
       EXPORT TreeliteTargets
       ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
