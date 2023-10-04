@@ -41,7 +41,8 @@ std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(void const* buf, s
  *                    parser
  * \return Loaded model
  */
-std::unique_ptr<treelite::Model> LoadXGBoostModel(char const* filename, char const* config_json);
+std::unique_ptr<treelite::Model> LoadXGBoostModel(
+    std::string const& filename, char const* config_json);
 /*!
  * \brief Load an XGBoost model from a JSON string
  * \param json_str JSON char array
@@ -58,7 +59,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModelFromString(
  * \param filename name of model file
  * \return loaded model
  */
-std::unique_ptr<treelite::Model> LoadLightGBMModel(char const* filename);
+std::unique_ptr<treelite::Model> LoadLightGBMModel(std::string const& filename);
 /*!
  * \brief Load a LightGBM model from a string. The string should be created with the
  *        model_to_string() method in LightGBM.

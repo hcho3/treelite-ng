@@ -200,11 +200,36 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
       model.variant_);
   // Apply tree averaging
   if (model.average_tree_output) {
+    std::vector<std::size_t> average_factor(model.num_target * max_num_class, 0);
+    auto average_factor_view
+        = Array2DView<std::size_t>(average_factor.data(), model.num_target, max_num_class);
+    for (std::size_t tree_id = 0; tree_id < num_tree; ++tree_id) {
+      if (model.target_id[tree_id] < 0 && model.class_id[tree_id] < 0) {
+        for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+          for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+            average_factor_view(target_id, class_id) += 1;
+          }
+        }
+      } else if (model.target_id[tree_id] < 0) {
+        std::int32_t const class_id = model.class_id[tree_id];
+        for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
+          average_factor_view(target_id, class_id) += 1;
+        }
+      } else if (model.class_id[tree_id] < 0) {
+        std::int32_t const target_id = model.target_id[tree_id];
+        for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
+          average_factor_view(target_id, class_id) += 1;
+        }
+      } else {
+        average_factor_view(model.target_id[tree_id], model.class_id[tree_id]) += 1;
+      }
+    }
     for (std::int32_t target_id = 0; target_id < model.num_target; ++target_id) {
       detail::threading_utils::ParallelFor(std::uint64_t(0), num_row, thread_config,
           detail::threading_utils::ParallelSchedule::Static(), [&](std::uint64_t row_id, int) {
             for (std::int32_t class_id = 0; class_id < model.num_class[target_id]; ++class_id) {
-              output_view(target_id, row_id, class_id) /= static_cast<InputT>(num_tree);
+              output_view(target_id, row_id, class_id)
+                  /= static_cast<InputT>(average_factor_view(target_id, class_id));
             }
           });
     }

@@ -52,7 +52,11 @@ def load_lightgbm_model(filename: str) -> Any:
                  Model.load() is removed.
     """
     handle = ctypes.c_void_p()
-    _check_call(_LIB.TreeliteLoadLightGBMModel(c_str(filename)))
+    _check_call(
+        _LIB.TreeliteLoadLightGBMModel(
+            c_str(filename), c_str("{}"), ctypes.byref(handle)
+        )
+    )
     return handle
 
 

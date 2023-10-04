@@ -27,6 +27,8 @@
 #include <utility>
 #include <variant>
 
+#include "./detail/common.h"
+
 namespace {
 
 inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
@@ -35,8 +37,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 
 namespace treelite::model_loader {
 
-std::unique_ptr<treelite::Model> LoadLightGBMModel(char const* filename) {
-  std::ifstream fi(filename, std::ios::in);
+std::unique_ptr<treelite::Model> LoadLightGBMModel(std::string const& filename) {
+  std::ifstream fi = detail::OpenFileForReadAsStream(filename);
   return ParseStream(fi);
 }
 
@@ -472,12 +474,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK(num_class >= 0 && num_class == num_class_ && alpha > 0.0f)
         << "Ill-formed LightGBM model file: not a valid multiclassova objective";
-    pred_transform = PredTransformFunc{"multiclass_ova", fmt::format(R"(
-          {{
-            "sigmoid_alpha": {}
-          }}
-        )",
-                                                             alpha)};
+    pred_transform
+        = PredTransformFunc{"multiclass_ova", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
   } else if (obj_name_ == "binary") {
     // Validate alpha parameter
     float alpha = -1.0f;
@@ -492,12 +490,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK_GT(alpha, 0.0f)
         << "Ill-formed LightGBM model file: not a valid binary objective";
-    pred_transform = PredTransformFunc{"sigmoid", fmt::format(R"(
-          {{
-            "sigmoid_alpha": {}
-          }}
-        )",
-                                                      alpha)};
+    pred_transform
+        = PredTransformFunc{"sigmoid", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
   } else if (obj_name_ == "cross_entropy") {
     pred_transform = PredTransformFunc{"sigmoid",
         R"(
@@ -531,7 +525,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   treelite::model_builder::TreeAnnotation tree_annotation{
       num_tree, std::vector<std::int32_t>(num_tree, 0), class_id};
   auto builder = treelite::model_builder::GetModelBuilder(treelite::TypeInfo::kFloat64,
-      treelite::TypeInfo::kFloat64, metadata, tree_annotation, pred_transform.value(), {0.0});
+      treelite::TypeInfo::kFloat64, metadata, tree_annotation, pred_transform.value(),
+      std::vector<double>(num_class_, 0.0));
 
   // Traverse trees
   for (auto const& lgb_tree : lgb_trees_) {

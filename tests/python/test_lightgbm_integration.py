@@ -1,5 +1,5 @@
 """Tests for LightGBM integration"""
-import os
+import pathlib
 
 import numpy as np
 import pytest
@@ -62,13 +62,13 @@ def test_lightgbm_regression(objective, reg_sqrt, dataset):
         valid_sets=[dtrain, dtest],
         valid_names=["train", "test"],
     )
-    expected_pred = lgb_model.predict(X_test)
+    expected_pred = lgb_model.predict(X_test).reshape((-1, 1))
 
     with TemporaryDirectory() as tmpdir:
-        lgb_model_path = os.path.join(tmpdir, "boston_lightgbm.txt")
+        lgb_model_path = pathlib.Path(tmpdir) / "lightgbm_model.txt"
         lgb_model.save_model(lgb_model_path)
 
-        tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
+        tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
         out_pred = treelite.gtil.predict(tl_model, X_test)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
 
@@ -103,13 +103,13 @@ def test_lightgbm_binary_classification(dataset, objective, num_boost_round):
         valid_sets=[dtrain, dtest],
         valid_names=["train", "test"],
     )
-    expected_prob = lgb_model.predict(X_test)
+    expected_prob = lgb_model.predict(X_test).reshape((-1, 1))
 
     with TemporaryDirectory() as tmpdir:
-        lgb_model_path = os.path.join(tmpdir, "breast_cancer_lightgbm.txt")
+        lgb_model_path = pathlib.Path(tmpdir) / "breast_cancer_lightgbm.txt"
         lgb_model.save_model(lgb_model_path)
 
-        tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
+        tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
         out_prob = treelite.gtil.predict(tl_model, X_test)
         np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
@@ -156,10 +156,10 @@ def test_lightgbm_multiclass_classification(
     expected_pred = lgb_model.predict(X_test)
 
     with TemporaryDirectory() as tmpdir:
-        lgb_model_path = os.path.join(tmpdir, "iris_lightgbm.txt")
+        lgb_model_path = pathlib.Path(tmpdir) / "iris_lightgbm.txt"
         lgb_model.save_model(lgb_model_path)
 
-        tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
+        tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
         out_pred = treelite.gtil.predict(tl_model, X_test)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -168,10 +168,10 @@ def test_lightgbm_categorical_data():
     """Test LightGBM with toy categorical data"""
     dataset = "toy_categorical"
     lgb_model_path = dataset_db[dataset].model
-    tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
+    tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
 
     X, _ = load_svmlight_file(dataset_db[dataset].dtest, zero_based=True)
-    expected_pred = load_txt(dataset_db[dataset].expected_margin)
+    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((-1, 1))
     out_pred = treelite.gtil.predict(tl_model, X.toarray())
     np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
@@ -195,14 +195,14 @@ def test_lightgbm_sparse_ranking_model(tmpdir):
         "min_data_in_leaf": 1,
     }
 
-    lgb_model_path = os.path.join(tmpdir, "sparse_ranking_lightgbm.txt")
+    lgb_model_path = pathlib.Path(tmpdir) / "sparse_ranking_lightgbm.txt"
 
     dtrain = lgb.Dataset(X, label=y, group=[X.shape[0]])
     lgb_model = lgb.train(params, dtrain, num_boost_round=1)
-    lgb_out = lgb_model.predict(X)
+    lgb_out = lgb_model.predict(X).reshape((-1, 1))
     lgb_model.save_model(lgb_model_path)
 
-    tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
+    tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
 
     # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
     Xa = X.toarray()
@@ -216,12 +216,12 @@ def test_lightgbm_sparse_categorical_model():
     """Test LightGBM with high-cardinality categorical features"""
     dataset = "sparse_categorical"
     lgb_model_path = dataset_db[dataset].model
-    tl_model = treelite.Model.load(lgb_model_path, model_format="lightgbm")
+    tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
 
     X, _ = load_svmlight_file(
         dataset_db[dataset].dtest, zero_based=True, n_features=tl_model.num_feature
     )
-    expected_pred = load_txt(dataset_db[dataset].expected_margin)
+    expected_pred = load_txt(dataset_db[dataset].expected_margin).reshape((-1, 1))
     # GTIL doesn't yet support sparse matrix; so use NaN to represent missing values
     Xa = X.toarray()
     Xa[Xa == 0] = "nan"

@@ -42,17 +42,11 @@ Iter BinarySearch(Iter begin, Iter end, T const& val);
 
 namespace treelite::model_loader {
 
-std::unique_ptr<treelite::Model> LoadXGBoostModel(char const* filename, char const* config_json) {
+std::unique_ptr<treelite::Model> LoadXGBoostModel(
+    std::string const& filename, char const* config_json) {
   char read_buffer[65536];
 
-#ifdef _WIN32
-  FILE* fp = std::fopen(filename, "rb");
-#else
-  FILE* fp = std::fopen(filename, "r");
-#endif
-  if (!fp) {
-    TREELITE_LOG(FATAL) << "Failed to open file '" << filename << "': " << std::strerror(errno);
-  }
+  FILE* fp = detail::OpenFileForReadAsFilePtr(filename);
 
   auto input_stream
       = std::make_unique<rapidjson::FileReadStream>(fp, read_buffer, sizeof(read_buffer));
