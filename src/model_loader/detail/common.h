@@ -23,7 +23,7 @@ inline std::ifstream OpenFileForReadAsStream(std::string const& filename, bool b
   auto path = std::filesystem::weakly_canonical(std::filesystem::u8path(filename));
   TREELITE_CHECK(std::filesystem::exists(path)) << "Path " << filename << " does not exist";
 #ifdef _WIN32
-  return std::ifstream(path, std::ios::in);
+  return std::ifstream(path, std::ios::in | std::ios::binary);
 #else
   if (binary) {
     return std::ifstream(path, std::ios::in | std::ios::binary);
@@ -38,7 +38,7 @@ inline FILE* OpenFileForReadAsFilePtr(std::string const& filename, bool binary =
   TREELITE_CHECK(std::filesystem::exists(path)) << "Path " << filename << " does not exist";
   FILE* fp;
 #ifdef _WIN32
-  fp = _wfopen(path.wstring().c_str(), "rb");
+  fp = _wfopen(path.wstring().c_str(), L"rb");
 #else
   if (binary) {
     fp = std::fopen(path.string().c_str(), "rb");
