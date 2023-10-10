@@ -11,6 +11,8 @@
 
 #include <string>
 
+#include "./string_utils.h"
+
 namespace treelite::model_loader::detail::lightgbm {
 
 /*!
@@ -49,7 +51,7 @@ std::string CanonicalObjective(std::string const& obj_name) {
     // These objectives have no aliases
     return obj_name;
   } else {
-    TREELITE_LOG(FATAL) << "Unknown objective name: " << obj_name;
+    TREELITE_LOG(FATAL) << "Unknown objective name: \"" << obj_name << "\"";
     return "";
   }
 }

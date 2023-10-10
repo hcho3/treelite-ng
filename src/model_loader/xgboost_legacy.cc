@@ -24,8 +24,9 @@
 #include <sstream>
 #include <variant>
 
-#include "./detail/common.h"
 #include "./detail/xgboost.h"
+#include "detail/file_utils.h"
+#include "detail/string_utils.h"
 
 namespace fs = std::filesystem;
 

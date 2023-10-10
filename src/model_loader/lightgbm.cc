@@ -27,7 +27,8 @@
 #include <utility>
 #include <variant>
 
-#include "./detail/common.h"
+#include "./detail/file_utils.h"
+#include "./detail/string_utils.h"
 
 namespace {
 
@@ -224,6 +225,7 @@ inline std::vector<std::string> LoadText(std::istream& fi) {
   std::vector<std::string> lines;
   std::string line;
   while (std::getline(fi, line)) {
+    treelite::model_loader::detail::StringTrimFromEnd(line);
     lines.push_back(line);
   }
 

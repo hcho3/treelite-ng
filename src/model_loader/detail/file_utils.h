@@ -1,12 +1,14 @@
 /*!
  * Copyright (c) 2023 by Contributors
- * \file common.h
- * \brief Helper functions for loading models
+ * \file file_utils.h
+ * \brief Helper functions for manipulating files
  * \author Hyunsu Cho
  */
 
-#ifndef SRC_MODEL_LOADER_DETAIL_COMMON_H_
-#define SRC_MODEL_LOADER_DETAIL_COMMON_H_
+#ifndef SRC_MODEL_LOADER_DETAIL_FILE_UTILS_H_
+#define SRC_MODEL_LOADER_DETAIL_FILE_UTILS_H_
+
+#include <treelite/logging.h>
 
 #include <cstdio>
 #include <filesystem>
@@ -14,10 +16,6 @@
 #include <string>
 
 namespace treelite::model_loader::detail {
-
-inline bool StringStartsWith(std::string const& str, std::string const& prefix) {
-  return str.rfind(prefix, 0) == 0;
-}
 
 inline std::ifstream OpenFileForReadAsStream(std::string const& filename, bool binary = false) {
   auto path = std::filesystem::weakly_canonical(std::filesystem::u8path(filename));
@@ -52,4 +50,4 @@ inline FILE* OpenFileForReadAsFilePtr(std::string const& filename, bool binary =
 
 }  // namespace treelite::model_loader::detail
 
-#endif  // SRC_MODEL_LOADER_DETAIL_COMMON_H_
+#endif  // SRC_MODEL_LOADER_DETAIL_FILE_UTILS_H_

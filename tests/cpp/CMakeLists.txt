@@ -18,6 +18,7 @@ target_sources(treelite_cpp_test
     test_main.cc
     test_gtil.cc
     test_model_builder.cc
+    test_model_loader.cc
 )
 
 target_include_directories(treelite_cpp_test
