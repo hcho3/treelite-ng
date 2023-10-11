@@ -6,6 +6,7 @@ import pytest
 import scipy
 import treelite
 from hypothesis import given, settings
+from hypothesis.strategies import data as hypothesis_callback
 from hypothesis.strategies import integers, just, sampled_from
 
 from .hypothesis_util import (
@@ -14,7 +15,7 @@ from .hypothesis_util import (
     standard_settings,
 )
 from .metadata import dataset_db
-from .util import TemporaryDirectory, load_txt
+from .util import TemporaryDirectory, load_txt, to_categorical
 
 try:
     import lightgbm as lgb
@@ -25,7 +26,6 @@ except ImportError:
 
 try:
     from sklearn.datasets import load_svmlight_file
-    from sklearn.model_selection import train_test_split
 except ImportError:
     # skip this test suite if scikit-learn is not installed
     pytest.skip("scikit-learn not installed; skipping", allow_module_level=True)
@@ -35,17 +35,30 @@ except ImportError:
     objective=sampled_from(["regression", "regression_l1", "huber"]),
     reg_sqrt=sampled_from([True, False]),
     dataset=standard_regression_datasets(),
+    use_categorical=sampled_from([True, False]),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_lightgbm_regression(objective, reg_sqrt, dataset):
+def test_lightgbm_regression(
+    objective,
+    reg_sqrt,
+    dataset,
+    use_categorical,
+    callback,
+):
     # pylint: disable=too-many-locals
     """Test LightGBM regressor"""
     X, y = dataset
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = lgb.Dataset(X_train, y_train, free_raw_data=False)
-    dtest = lgb.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = lgb.Dataset(
+            df, label=y, free_raw_data=False, categorical_feature="auto"
+        )
+    else:
+        dtrain = lgb.Dataset(X, label=y, free_raw_data=False)
+        X_pred = X.copy()
+
     param = {
         "task": "train",
         "boosting_type": "gbdt",
@@ -59,17 +72,17 @@ def test_lightgbm_regression(objective, reg_sqrt, dataset):
         param,
         dtrain,
         num_boost_round=10,
-        valid_sets=[dtrain, dtest],
-        valid_names=["train", "test"],
+        valid_sets=[dtrain],
+        valid_names=["train"],
     )
-    expected_pred = lgb_model.predict(X_test).reshape((-1, 1))
+    expected_pred = lgb_model.predict(X_pred).reshape((-1, 1))
 
     with TemporaryDirectory() as tmpdir:
         lgb_model_path = pathlib.Path(tmpdir) / "lightgbm_model.txt"
         lgb_model.save_model(lgb_model_path)
 
         tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
-        out_pred = treelite.gtil.predict(tl_model, X_test)
+        out_pred = treelite.gtil.predict(tl_model, X_pred)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=4)
 
 
@@ -77,17 +90,30 @@ def test_lightgbm_regression(objective, reg_sqrt, dataset):
     dataset=standard_classification_datasets(n_classes=just(2)),
     objective=sampled_from(["binary", "xentlambda", "xentropy"]),
     num_boost_round=integers(min_value=5, max_value=50),
+    use_categorical=sampled_from([True, False]),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
-def test_lightgbm_binary_classification(dataset, objective, num_boost_round):
+def test_lightgbm_binary_classification(
+    dataset,
+    objective,
+    num_boost_round,
+    use_categorical,
+    callback,
+):
     # pylint: disable=too-many-locals
     """Test LightGBM binary classifier"""
     X, y = dataset
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = lgb.Dataset(X_train, y_train, free_raw_data=False)
-    dtest = lgb.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = lgb.Dataset(
+            df, label=y, free_raw_data=False, categorical_feature="auto"
+        )
+    else:
+        dtrain = lgb.Dataset(X, label=y, free_raw_data=False)
+        X_pred = X.copy()
+
     param = {
         "task": "train",
         "boosting_type": "gbdt",
@@ -100,17 +126,17 @@ def test_lightgbm_binary_classification(dataset, objective, num_boost_round):
         param,
         dtrain,
         num_boost_round=num_boost_round,
-        valid_sets=[dtrain, dtest],
-        valid_names=["train", "test"],
+        valid_sets=[dtrain],
+        valid_names=["train"],
     )
-    expected_prob = lgb_model.predict(X_test).reshape((-1, 1))
+    expected_prob = lgb_model.predict(X_pred).reshape((-1, 1))
 
     with TemporaryDirectory() as tmpdir:
         lgb_model_path = pathlib.Path(tmpdir) / "breast_cancer_lightgbm.txt"
         lgb_model.save_model(lgb_model_path)
 
         tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
-        out_prob = treelite.gtil.predict(tl_model, X_test)
+        out_prob = treelite.gtil.predict(tl_model, X_pred)
         np.testing.assert_almost_equal(out_prob, expected_prob, decimal=5)
 
 
@@ -121,20 +147,31 @@ def test_lightgbm_binary_classification(dataset, objective, num_boost_round):
     objective=sampled_from(["multiclass", "multiclassova"]),
     boosting_type=sampled_from(["gbdt", "rf"]),
     num_boost_round=integers(min_value=5, max_value=50),
+    use_categorical=sampled_from([True, False]),
+    callback=hypothesis_callback(),
 )
 @settings(**standard_settings())
 def test_lightgbm_multiclass_classification(
-    dataset, objective, boosting_type, num_boost_round
+    dataset,
+    objective,
+    boosting_type,
+    num_boost_round,
+    use_categorical,
+    callback,
 ):
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals,too-many-arguments
     """Test LightGBM multi-class classifier"""
     X, y = dataset
     num_class = np.max(y) + 1
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
-    )
-    dtrain = lgb.Dataset(X_train, y_train, free_raw_data=False)
-    dtest = lgb.Dataset(X_test, y_test, reference=dtrain, free_raw_data=False)
+    if use_categorical:
+        n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        dtrain = lgb.Dataset(
+            df, label=y, free_raw_data=False, categorical_feature="auto"
+        )
+    else:
+        dtrain = lgb.Dataset(X, label=y, free_raw_data=False)
+        X_pred = X.copy()
     param = {
         "task": "train",
         "boosting": boosting_type,
@@ -150,17 +187,17 @@ def test_lightgbm_multiclass_classification(
         param,
         dtrain,
         num_boost_round=num_boost_round,
-        valid_sets=[dtrain, dtest],
-        valid_names=["train", "test"],
+        valid_sets=[dtrain],
+        valid_names=["train"],
     )
-    expected_pred = lgb_model.predict(X_test)
+    expected_pred = lgb_model.predict(X_pred)
 
     with TemporaryDirectory() as tmpdir:
         lgb_model_path = pathlib.Path(tmpdir) / "iris_lightgbm.txt"
         lgb_model.save_model(lgb_model_path)
 
         tl_model = treelite.frontend.load_lightgbm_model(lgb_model_path)
-        out_pred = treelite.gtil.predict(tl_model, X_test)
+        out_pred = treelite.gtil.predict(tl_model, X_pred)
         np.testing.assert_almost_equal(out_pred, expected_pred, decimal=5)
 
 

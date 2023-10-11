@@ -85,7 +85,7 @@ def test_xgb_regressor(
         use_categorical = callback.draw(sampled_from([True, False]))
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
-        df, X_pred = to_categorical(X, n_categorical=n_categorical)
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
         model_format = "json"
     else:
@@ -153,7 +153,7 @@ def test_xgb_multiclass_classifier(
     X, y = dataset
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
-        df, X_pred = to_categorical(X, n_categorical=n_categorical)
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
         model_format = "json"
     else:
@@ -241,7 +241,7 @@ def test_xgb_nonlinear_objective(
     )
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
-        df, X_pred = to_categorical(X, n_categorical=n_categorical)
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
         model_format = "json"
     else:
@@ -438,7 +438,7 @@ def test_xgb_multi_target_binary_classifier(
     X, y = dataset
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
-        df, X_pred = to_categorical(X, n_categorical=n_categorical)
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
     else:
         dtrain = xgb.DMatrix(X, label=y)
@@ -526,7 +526,7 @@ def test_xgb_multi_target_regressor(
 
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
-        df, X_pred = to_categorical(X, n_categorical=n_categorical)
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
         dtrain = xgb.DMatrix(df, label=y, enable_categorical=True)
     else:
         dtrain = xgb.DMatrix(X, label=y)
