@@ -170,6 +170,9 @@ struct TreeAnnotation {
       std::vector<std::int32_t> const& class_id);
 };
 
+/*!
+ * \brief Parameter type used to configure postprocessor functions.
+ */
 using PostProcessorConfigParam = std::variant<std::int64_t, double, std::string>;
 
 /*!
