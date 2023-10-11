@@ -1,7 +1,7 @@
 # Object library
 
 add_library(objtreelite OBJECT)
-target_link_libraries(objtreelite PRIVATE fmt::fmt-header-only RapidJSON::rapidjson std::mdspan)
+target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson std::mdspan)
 
 if(USE_OPENMP)
   if(APPLE)
@@ -95,8 +95,8 @@ target_sources(objtreelite
     enum/typeinfo.cc
     gtil/config.cc
     gtil/output_shape.cc
-    gtil/pred_transform.cc
-    gtil/pred_transform.h
+    gtil/postprocessor.cc
+    gtil/postprocessor.h
     gtil/predict.cc
     model_builder/metadata.cc
     model_builder/model_builder.cc

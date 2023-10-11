@@ -47,7 +47,7 @@ TEST_P(ParametrizedTestSuite, MulticlassClfGrovePerClass) {
         "target_id": [0, 0, 0, 0, 0, 0],
         "class_id": [0, 1, 2, 0, 1, 2]
       },
-      "pred_transform": {
+      "postprocessor": {
         "name": "softmax"
       },
       "base_scores": [0.3, 0.2, 0.5]
@@ -122,11 +122,11 @@ TEST_P(ParametrizedTestSuite, MulticlassClfGrovePerClass) {
 TEST_P(ParametrizedTestSuite, LeafVectorRF) {
   model_builder::Metadata metadata{1, TaskType::kMultiClf, true, 1, {3}, {1, 3}};
   model_builder::TreeAnnotation tree_annotation{2, {0, 0}, {-1, -1}};
-  model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
+  model_builder::PostProcessorFunc postprocessor{"identity_multiclass"};
   std::vector<double> base_scores{100.0, 200.0, 300.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
-          tree_annotation, pred_transform, base_scores);
+          tree_annotation, postprocessor, base_scores);
   auto make_tree_stump
       = [&](std::vector<float> const& left_child_val, std::vector<float> const& right_child_val) {
           builder->StartTree();
@@ -184,11 +184,11 @@ INSTANTIATE_TEST_SUITE_P(GTIL, ParametrizedTestSuite, testing::Values("raw", "de
 TEST(GTIL, InvalidCategoricalInput) {
   model_builder::Metadata metadata{2, TaskType::kRegressor, false, 1, {1}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
-  model_builder::PredTransformFunc pred_transform{"identity"};
+  model_builder::PostProcessorFunc postprocessor{"identity"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
-          tree_annotation, pred_transform, base_scores);
+          tree_annotation, postprocessor, base_scores);
 
   builder->StartTree();
   builder->StartNode(0);

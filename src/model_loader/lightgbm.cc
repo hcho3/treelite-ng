@@ -210,10 +210,10 @@ inline MissingType GetMissingType(std::int8_t decision_type) {
 
 inline std::vector<std::uint32_t> BitsetToList(std::uint32_t const* bits, std::size_t nslots) {
   std::vector<std::uint32_t> result;
-  const std::size_t nbits = nslots * 32;
+  std::size_t const nbits = nslots * 32;
   for (std::size_t i = 0; i < nbits; ++i) {
-    const std::size_t i1 = i / 32;
-    const std::uint32_t i2 = static_cast<std::uint32_t>(i % 32);
+    std::size_t const i1 = i / 32;
+    std::uint32_t const i2 = static_cast<std::uint32_t>(i % 32);
     if ((bits[i1] >> i2) & 1) {
       result.push_back(static_cast<std::uint32_t>(i));
     }
@@ -441,8 +441,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   }
 
   // Set correct prediction transform function, depending on objective function
-  using treelite::model_builder::PredTransformFunc;
-  std::optional<PredTransformFunc> pred_transform = std::nullopt;
+  using treelite::model_builder::PostProcessorFunc;
+  std::optional<PostProcessorFunc> postprocessor = std::nullopt;
   if (obj_name_ == "multiclass") {
     // Validate num_class parameter
     int num_class = -1;
@@ -457,7 +457,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK(num_class >= 0 && num_class == num_class_)
         << "Ill-formed LightGBM model file: not a valid multiclass objective";
-    pred_transform = PredTransformFunc{"softmax"};
+    postprocessor = PostProcessorFunc{"softmax"};
   } else if (obj_name_ == "multiclassova") {
     // Validate num_class and alpha parameters
     int num_class = -1;
@@ -476,8 +476,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK(num_class >= 0 && num_class == num_class_ && alpha > 0.0f)
         << "Ill-formed LightGBM model file: not a valid multiclassova objective";
-    pred_transform
-        = PredTransformFunc{"multiclass_ova", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
+    postprocessor
+        = PostProcessorFunc{"multiclass_ova", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
   } else if (obj_name_ == "binary") {
     // Validate alpha parameter
     float alpha = -1.0f;
@@ -492,42 +492,42 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK_GT(alpha, 0.0f)
         << "Ill-formed LightGBM model file: not a valid binary objective";
-    pred_transform
-        = PredTransformFunc{"sigmoid", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
+    postprocessor
+        = PostProcessorFunc{"sigmoid", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
   } else if (obj_name_ == "cross_entropy") {
-    pred_transform = PredTransformFunc{"sigmoid",
+    postprocessor = PostProcessorFunc{"sigmoid",
         R"(
           {
             "sigmoid_alpha": 1.0
           }
         )"};
   } else if (obj_name_ == "cross_entropy_lambda") {
-    pred_transform = PredTransformFunc{"logarithm_one_plus_exp"};
+    postprocessor = PostProcessorFunc{"logarithm_one_plus_exp"};
   } else if (obj_name_ == "poisson" || obj_name_ == "gamma" || obj_name_ == "tweedie") {
-    pred_transform = PredTransformFunc{"exponential"};
+    postprocessor = PostProcessorFunc{"exponential"};
   } else if (obj_name_ == "regression" || obj_name_ == "regression_l1" || obj_name_ == "huber"
              || obj_name_ == "fair" || obj_name_ == "quantile" || obj_name_ == "mape") {
     // Regression family
     bool sqrt = (std::find(obj_param_.cbegin(), obj_param_.cend(), "sqrt") != obj_param_.cend());
     if (sqrt) {
-      pred_transform = PredTransformFunc{"signed_square"};
+      postprocessor = PostProcessorFunc{"signed_square"};
     } else {
-      pred_transform = PredTransformFunc{"identity"};
+      postprocessor = PostProcessorFunc{"identity"};
     }
   } else if (obj_name_ == "lambdarank" || obj_name_ == "rank_xendcg" || obj_name_ == "custom") {
     // Ranking family, or a custom user-defined objective
-    pred_transform = PredTransformFunc{"identity"};
+    postprocessor = PostProcessorFunc{"identity"};
   } else {
     TREELITE_LOG(FATAL) << "Unrecognized objective: " << obj_name_;
   }
-  TREELITE_CHECK(pred_transform.has_value());
+  TREELITE_CHECK(postprocessor.has_value());
 
   treelite::model_builder::Metadata metadata{static_cast<std::int32_t>(max_feature_idx_ + 1),
       task_type, average_output_, 1, {static_cast<std::int32_t>(num_class_)}, {1, 1}};
   treelite::model_builder::TreeAnnotation tree_annotation{
       num_tree, std::vector<std::int32_t>(num_tree, 0), class_id};
   auto builder = treelite::model_builder::GetModelBuilder(treelite::TypeInfo::kFloat64,
-      treelite::TypeInfo::kFloat64, metadata, tree_annotation, pred_transform.value(),
+      treelite::TypeInfo::kFloat64, metadata, tree_annotation, postprocessor.value(),
       std::vector<double>(num_class_, 0.0));
 
   // Traverse trees

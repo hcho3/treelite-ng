@@ -14,9 +14,9 @@
 
 namespace treelite::model_loader::detail::xgboost {
 
-// set correct prediction transform function, depending on objective function
-std::string GetPredTransform(std::string const& objective_name) {
-  const std::vector<std::string> exponential_objectives{
+// Get correct postprocessor for prediction, depending on objective function
+std::string GetPostProcessor(std::string const& objective_name) {
+  std::vector<std::string> const exponential_objectives{
       "count:poisson", "reg:gamma", "reg:tweedie", "survival:cox", "survival:aft"};
   if (objective_name == "multi:softmax" || objective_name == "multi:softprob") {
     return "softmax";
@@ -39,10 +39,10 @@ std::string GetPredTransform(std::string const& objective_name) {
   }
 }
 
-double TransformBaseScoreToMargin(std::string const& pred_transform, double base_score) {
-  if (pred_transform == "sigmoid") {
+double TransformBaseScoreToMargin(std::string const& postprocessor, double base_score) {
+  if (postprocessor == "sigmoid") {
     return ProbToMargin::Sigmoid(base_score);
-  } else if (pred_transform == "exponential") {
+  } else if (postprocessor == "exponential") {
     return ProbToMargin::Exponential(base_score);
   } else {
     return base_score;

@@ -59,13 +59,13 @@ using treelite::model_loader::detail::StringStartsWith;
 /* peekable input stream implemented with a ring buffer */
 class PeekableInputStream {
  public:
-  const std::size_t MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
+  std::size_t const MAX_PEEK_WINDOW = 1024;  // peek up to 1024 bytes
 
   explicit PeekableInputStream(std::istream& fi)
       : istm_(fi), buf_(MAX_PEEK_WINDOW + 1), begin_ptr_(0), end_ptr_(0) {}
 
   inline std::size_t Read(void* ptr, std::size_t size) {
-    const std::size_t bytes_buffered = BytesBuffered();
+    std::size_t const bytes_buffered = BytesBuffered();
     char* cptr = static_cast<char*>(ptr);
     if (size <= bytes_buffered) {
       // all content already buffered; consume buffer
@@ -80,7 +80,7 @@ class PeekableInputStream {
       }
       return size;
     } else {  // consume buffer entirely and read more bytes
-      const std::size_t bytes_to_read = size - bytes_buffered;
+      std::size_t const bytes_to_read = size - bytes_buffered;
       if (begin_ptr_ <= end_ptr_) {
         std::memcpy(cptr, &buf_[begin_ptr_], bytes_buffered);
       } else {
@@ -98,10 +98,10 @@ class PeekableInputStream {
     TREELITE_CHECK_LE(size, MAX_PEEK_WINDOW)
         << "PeekableInputStream allows peeking up to " << MAX_PEEK_WINDOW << " bytes";
     char* cptr = static_cast<char*>(ptr);
-    const std::size_t bytes_buffered = BytesBuffered();
+    std::size_t const bytes_buffered = BytesBuffered();
     /* fill buffer with additional bytes, up to size */
     if (size > bytes_buffered) {
-      const std::size_t bytes_to_read = size - bytes_buffered;
+      std::size_t const bytes_to_read = size - bytes_buffered;
       if (end_ptr_ + bytes_to_read < MAX_PEEK_WINDOW + 1) {
         istm_.read(&buf_[end_ptr_], bytes_to_read);
         TREELITE_CHECK_EQ(istm_.gcount(), bytes_to_read) << "Failed to peek " << size << " bytes";
@@ -440,8 +440,8 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
   }
 
-  treelite::model_builder::PredTransformFunc pred_transform{
-      treelite::model_loader::detail::xgboost::GetPredTransform(name_obj_)};
+  treelite::model_builder::PostProcessorFunc postprocessor{
+      treelite::model_loader::detail::xgboost::GetPostProcessor(name_obj_)};
   treelite::model_builder::Metadata metadata{num_feature, task_type, average_tree_output,
       num_target, std::vector<std::int32_t>(num_target, num_class), leaf_vector_shape};
   treelite::model_builder::TreeAnnotation tree_annotation{num_tree, target_id, class_id};
@@ -453,13 +453,13 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
   bool const need_transform_to_margin = mparam_.major_version >= 1;
   if (need_transform_to_margin) {
     base_score = treelite::model_loader::detail::xgboost::TransformBaseScoreToMargin(
-        pred_transform.name, base_score);
+        postprocessor.name, base_score);
   }
   std::size_t const len_base_scores = num_target * num_class;
   std::vector<double> base_scores(len_base_scores, base_score);
 
   auto builder = treelite::model_builder::GetModelBuilder(treelite::TypeInfo::kFloat32,
-      treelite::TypeInfo::kFloat32, metadata, tree_annotation, pred_transform, base_scores);
+      treelite::TypeInfo::kFloat32, metadata, tree_annotation, postprocessor, base_scores);
 
   /* 3. Build trees */
   for (int tree_id = 0; tree_id < xgb_trees_.size(); ++tree_id) {

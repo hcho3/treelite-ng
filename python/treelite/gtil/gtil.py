@@ -74,16 +74,7 @@ def predict(
     Returns
     -------
     prediction : :py:class:`numpy.ndarray` array
-        Prediction output. Expected output dimensions:
-
-        - (num_row,) for regressors and binary classifiers
-        - (num_row, num_class) for multi-class classifiers (See Notes for a special
-          case.)
-
-    Notes
-    -----
-    The output has shape (num_row,) if the model is a multi-class classifier with
-    task_type="MultiClfGrovePerClass" and pred_transform="max_index".
+        Prediction output. TODO(hcho3): Add expected dimensions
     """
     if pred_margin is None:
         pred_margin = False

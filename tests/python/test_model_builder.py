@@ -6,7 +6,7 @@ from treelite import TreeliteError
 from treelite.model_builder import (
     Metadata,
     ModelBuilder,
-    PredTransformFunc,
+    PostProcessorFunc,
     TreeAnnotation,
 )
 
@@ -25,7 +25,7 @@ def test_orphaned_nodes():
             leaf_vector_shape=[1, 1],
         ),
         tree_annotation=TreeAnnotation(num_tree=1, target_id=[0], class_id=[0]),
-        pred_transform=PredTransformFunc(name="sigmoid", config={"sigmoid_alpha": 2.0}),
+        postprocessor=PostProcessorFunc(name="sigmoid", config={"sigmoid_alpha": 2.0}),
         base_scores=[0.0],
     )
     builder.start_tree()
@@ -53,7 +53,7 @@ def test_invalid_node_id():
             leaf_vector_shape=[1, 1],
         ),
         tree_annotation=TreeAnnotation(num_tree=1, target_id=[0], class_id=[0]),
-        pred_transform=PredTransformFunc(name="sigmoid"),
+        postprocessor=PostProcessorFunc(name="sigmoid"),
         base_scores=[0.0],
     )
     builder.start_tree()
@@ -98,7 +98,7 @@ def test_leaf_vector_rf(predict_kind):
             leaf_vector_shape=[1, 3],
         ),
         tree_annotation=TreeAnnotation(num_tree=2, target_id=[0, 0], class_id=[-1, -1]),
-        pred_transform=PredTransformFunc(name="identity_multiclass"),
+        postprocessor=PostProcessorFunc(name="identity_multiclass"),
         base_scores=[100.0, 200.0, 300.0],
     )
 

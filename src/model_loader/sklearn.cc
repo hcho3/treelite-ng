@@ -34,10 +34,9 @@ class RandomForestRegressorMixIn {
     std::vector<std::int32_t> const target_id(n_trees, (n_targets > 1 ? -1 : 0));
     model_builder::TreeAnnotation tree_annotation{
         n_trees, target_id, std::vector<std::int32_t>(n_trees, 0)};
-    model_builder::PredTransformFunc pred_transform{"identity"};
+    model_builder::PostProcessorFunc postprocessor{"identity"};
     std::vector<double> base_scores(n_targets, 0.0);
-    builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -75,10 +74,9 @@ class RandomForestClassifierMixIn {
         static_cast<std::int32_t>(n_targets), n_classes_, {n_targets, max_num_class_}};
     model_builder::TreeAnnotation tree_annotation{
         n_trees, std::vector<std::int32_t>(n_trees, -1), std::vector<std::int32_t>(n_trees, -1)};
-    model_builder::PredTransformFunc pred_transform{"identity_multiclass"};
+    model_builder::PostProcessorFunc postprocessor{"identity_multiclass"};
     std::vector<double> base_scores(n_targets * max_num_class_, 0.0);
-    builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -113,9 +111,9 @@ class IsolationForestMixIn {
     std::ostringstream oss;
     oss << "{\"ratio_c\": " << ratio_c_ << "}";
     auto const config_json = oss.str();
-    model_builder::PredTransformFunc pred_transform{"exponential_standard_ratio", config_json};
+    model_builder::PostProcessorFunc postprocessor{"exponential_standard_ratio", config_json};
 
-    builder.InitializeMetadata(metadata, tree_annotation, pred_transform, {0.0}, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, {0.0}, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -136,10 +134,9 @@ class GradientBoostingRegressorMixIn {
     model_builder::Metadata metadata{n_features, TaskType::kRegressor, false, 1, {1}, {1, 1}};
     model_builder::TreeAnnotation tree_annotation{
         n_trees, std::vector<std::int32_t>(n_trees, 0), std::vector<std::int32_t>(n_trees, 0)};
-    model_builder::PredTransformFunc pred_transform{"identity"};
+    model_builder::PostProcessorFunc postprocessor{"identity"};
     std::vector<double> base_scores{base_score_};
-    builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -161,9 +158,9 @@ class GradientBoostingBinaryClassifierMixIn {
     std::vector<std::int32_t> target_id(n_trees, 0);
     std::vector<std::int32_t> class_id(n_trees, 0);
     model_builder::TreeAnnotation tree_annotation{n_trees, target_id, class_id};
-    model_builder::PredTransformFunc pred_transform{"sigmoid"};
+    model_builder::PostProcessorFunc postprocessor{"sigmoid"};
     builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, {base_score_}, std::nullopt);
+        metadata, tree_annotation, postprocessor, {base_score_}, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -190,9 +187,9 @@ class GradientBoostingMulticlassClassifierMixIn {
       class_id[tree_id] = tree_id % n_classes[0];
     }
     model_builder::TreeAnnotation tree_annotation{n_trees, target_id, class_id};
-    model_builder::PredTransformFunc pred_transform{"softmax"};
+    model_builder::PostProcessorFunc postprocessor{"softmax"};
     builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores_, std::nullopt);
+        metadata, tree_annotation, postprocessor, base_scores_, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -213,10 +210,9 @@ class HistGradientBoostingRegressorMixIn {
     model_builder::Metadata metadata{n_features, TaskType::kRegressor, false, 1, {1}, {1, 1}};
     model_builder::TreeAnnotation tree_annotation{
         n_trees, std::vector<std::int32_t>(n_trees, 0), std::vector<std::int32_t>(n_trees, 0)};
-    model_builder::PredTransformFunc pred_transform{"identity"};
+    model_builder::PostProcessorFunc postprocessor{"identity"};
     std::vector<double> base_scores{base_score_};
-    builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
   }
 
   void HandleLeafNode(model_builder::ModelBuilder& builder, int tree_id, int node_id,
@@ -237,10 +233,9 @@ class HistGradientBoostingBinaryClassifierMixIn {
     model_builder::Metadata metadata{n_features, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
     model_builder::TreeAnnotation tree_annotation{
         n_trees, std::vector<std::int32_t>(n_trees, 0), std::vector<std::int32_t>(n_trees, 0)};
-    model_builder::PredTransformFunc pred_transform{"sigmoid"};
+    model_builder::PostProcessorFunc postprocessor{"sigmoid"};
     std::vector<double> base_scores{base_score_};
-    builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
   }
 
  private:
@@ -262,10 +257,9 @@ class HistGradientBoostingMulticlassClassifierMixIn {
       class_id[tree_id] = tree_id % n_classes[0];
     }
     model_builder::TreeAnnotation tree_annotation{n_trees, target_id, class_id};
-    model_builder::PredTransformFunc pred_transform{"softmax"};
+    model_builder::PostProcessorFunc postprocessor{"softmax"};
     std::vector<double> base_scores{base_scores_};
-    builder.InitializeMetadata(
-        metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+    builder.InitializeMetadata(metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
   }
 
  private:

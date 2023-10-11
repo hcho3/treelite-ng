@@ -116,7 +116,7 @@ if(SKBUILD)
   )
 else()
   set(INSTALL_TARGETS ${TREELITE_TARGETS} objtreelite rapidjson mdspan)
-  if(NOT FMTLIB_FROM_SYSTEM_ROOT)
+  if(NOT FMTLIB_FROM_SYSTEM_ROOT AND BUILD_CPP_TEST)
     list(APPEND INSTALL_TARGETS fmt-header-only)
   endif()
   install(TARGETS ${INSTALL_TARGETS}

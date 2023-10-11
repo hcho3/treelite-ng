@@ -184,7 +184,7 @@ TreeAnnotation ParseTreeAnnotation(DocumentT const& obj, std::string const& fiel
 }
 
 template <typename DocumentT>
-PredTransformFunc ParsePredTransformFunc(DocumentT const& obj, std::string const& field_name) {
+PostProcessorFunc ParsePostProcessorFunc(DocumentT const& obj, std::string const& field_name) {
   std::string config_json;
   auto const& obj_ = GetMember(obj, field_name);
   auto itr = obj_.FindMember("config");
@@ -198,7 +198,7 @@ PredTransformFunc ParsePredTransformFunc(DocumentT const& obj, std::string const
     config_json = "{}";  // default to empty JSON object
   }
 
-  return PredTransformFunc{ObjectMemberHandler<std::string>::Get(obj_, "name"), config_json};
+  return PostProcessorFunc{ObjectMemberHandler<std::string>::Get(obj_, "name"), config_json};
 }
 
 template <typename DocumentT>

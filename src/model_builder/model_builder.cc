@@ -30,18 +30,18 @@ namespace treelite::model_builder {
 
 namespace detail {
 
-void ConfigurePredTransform(Model* model, PredTransformFunc const& pred_transform) {
+void ConfigurePostProcessor(Model* model, PostProcessorFunc const& postprocessor) {
   rapidjson::Document config;
-  config.Parse(pred_transform.config_json);
+  config.Parse(postprocessor.config_json);
   TREELITE_CHECK(!config.HasParseError())
       << "Error when parsing JSON config: offset " << config.GetErrorOffset() << ", "
       << rapidjson::GetParseError_En(config.GetParseError());
   TREELITE_CHECK(config.IsObject()) << "Expected an object";
-  if (pred_transform.name == "sigmoid" || pred_transform.name == "multiclass_ova") {
+  if (postprocessor.name == "sigmoid" || postprocessor.name == "multiclass_ova") {
     model->sigmoid_alpha
         = json_parse::ObjectMemberHandler<float>::Get(config, "sigmoid_alpha", 1.0f);
   }
-  if (pred_transform.name == "exponential_standard_ratio") {
+  if (postprocessor.name == "exponential_standard_ratio") {
     model->ratio_c = json_parse::ObjectMemberHandler<float>::Get(config, "ratio_c", 1.0f);
   }
 }
@@ -69,7 +69,7 @@ class ModelBuilderImpl : public ModelBuilder {
         metadata_initialized_{false} {}
 
   ModelBuilderImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
-      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes)
       : expected_num_tree_{},
         expected_leaf_size_{},
@@ -80,7 +80,7 @@ class ModelBuilderImpl : public ModelBuilder {
         current_node_id_{},
         current_state_{ModelBuilderState::kExpectTree},
         metadata_initialized_{false} {
-    InitializeMetadataImpl(metadata, tree_annotation, pred_transform, base_scores, attributes);
+    InitializeMetadataImpl(metadata, tree_annotation, postprocessor, base_scores, attributes);
   }
 
   void StartTree() override {
@@ -277,9 +277,9 @@ class ModelBuilderImpl : public ModelBuilder {
   }
 
   void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
-      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes) override {
-    InitializeMetadataImpl(metadata, tree_annotation, pred_transform, base_scores, attributes);
+    InitializeMetadataImpl(metadata, tree_annotation, postprocessor, base_scores, attributes);
   }
 
  private:
@@ -322,11 +322,11 @@ class ModelBuilderImpl : public ModelBuilder {
   }
 
   void InitializeMetadataImpl(Metadata const& metadata, TreeAnnotation const& tree_annotation,
-      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes) {
     TREELITE_CHECK(!metadata_initialized_) << "Metadata must be initialized only once";
-    const std::int32_t num_tree = tree_annotation.num_tree;
-    const std::int32_t num_target = metadata.num_target;
+    std::int32_t const num_tree = tree_annotation.num_tree;
+    std::int32_t const num_target = metadata.num_target;
 
     model_->num_feature = metadata.num_feature;
     model_->task_type = metadata.task_type;
@@ -356,10 +356,10 @@ class ModelBuilderImpl : public ModelBuilder {
     }
     model_->class_id = tree_annotation.class_id;
 
-    model_->pred_transform = pred_transform.name;
-    detail::ConfigurePredTransform(model_.get(), pred_transform);
+    model_->postprocessor = postprocessor.name;
+    detail::ConfigurePostProcessor(model_.get(), postprocessor);
 
-    const std::int32_t max_num_class
+    std::int32_t const max_num_class
         = *std::max_element(metadata.num_class.begin(), metadata.num_class.end());
     TREELITE_CHECK_EQ(base_scores.size(), num_target * max_num_class);
     model_->base_scores = base_scores;
@@ -380,7 +380,7 @@ class ModelBuilderImpl : public ModelBuilder {
 
 std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type,
     Metadata const& metadata, TreeAnnotation const& tree_annotation,
-    PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+    PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
     std::optional<std::string> const& attributes) {
   TREELITE_CHECK(threshold_type == TypeInfo::kFloat32 || threshold_type == TypeInfo::kFloat64)
       << "threshold_type must be either float32 or float64";
@@ -388,10 +388,10 @@ std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo 
       << "threshold_type must be identical to leaf_output_type";
   if (threshold_type == TypeInfo::kFloat32) {
     return std::make_unique<detail::ModelBuilderImpl<float, float>>(
-        metadata, tree_annotation, pred_transform, base_scores, attributes);
+        metadata, tree_annotation, postprocessor, base_scores, attributes);
   } else {
     return std::make_unique<detail::ModelBuilderImpl<double, double>>(
-        metadata, tree_annotation, pred_transform, base_scores, attributes);
+        metadata, tree_annotation, postprocessor, base_scores, attributes);
   }
 }
 
@@ -422,13 +422,13 @@ std::unique_ptr<ModelBuilder> GetModelBuilder(std::string const& json_str) {
       json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "leaf_output_type"));
   auto metadata = json_parse::ParseMetadata(parsed_json, "metadata");
   auto tree_annotation = json_parse::ParseTreeAnnotation(parsed_json, "tree_annotation");
-  auto pred_transform = json_parse::ParsePredTransformFunc(parsed_json, "pred_transform");
+  auto postprocessor = json_parse::ParsePostProcessorFunc(parsed_json, "postprocessor");
   auto base_scores
       = json_parse::ObjectMemberHandler<std::vector<double>>::Get(parsed_json, "base_scores");
   auto attributes = json_parse::ParseAttributes(parsed_json, "attributes");
 
-  return GetModelBuilder(threshold_type, leaf_output_type, metadata, tree_annotation,
-      pred_transform, base_scores, attributes);
+  return GetModelBuilder(threshold_type, leaf_output_type, metadata, tree_annotation, postprocessor,
+      base_scores, attributes);
 }
 
 }  // namespace treelite::model_builder

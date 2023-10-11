@@ -46,11 +46,11 @@ namespace treelite {
 TEST(ModelBuilder, OrphanedNodes) {
   model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
-  model_builder::PredTransformFunc pred_transform{"sigmoid"};
+  model_builder::PostProcessorFunc postprocessor{"sigmoid"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
-          tree_annotation, pred_transform, base_scores);
+          tree_annotation, postprocessor, base_scores);
   builder->StartTree();
   builder->StartNode(0);
   builder->LeafScalar(0.0);
@@ -64,11 +64,11 @@ TEST(ModelBuilder, OrphanedNodes) {
 TEST(ModelBuilder, InvalidNodeID) {
   model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
-  model_builder::PredTransformFunc pred_transform{"sigmoid"};
+  model_builder::PostProcessorFunc postprocessor{"sigmoid"};
   std::vector<double> base_scores{0.0};
   std::unique_ptr<model_builder::ModelBuilder> builder
       = model_builder::GetModelBuilder(TypeInfo::kFloat32, TypeInfo::kFloat32, metadata,
-          tree_annotation, pred_transform, base_scores);
+          tree_annotation, postprocessor, base_scores);
   builder->StartTree();
   EXPECT_THROW(builder->StartNode(-1), Error);
   builder->StartNode(0);
@@ -97,7 +97,7 @@ TEST(ModelBuilder, InvalidState) {
         "target_id": [0],
         "class_id": [-1]
       },
-      "pred_transform": {
+      "postprocessor": {
         "name": "identity_multiclass"
       },
       "base_scores": [0.0, 0.0]
@@ -161,7 +161,7 @@ TEST(ModelBuilder, InvalidState) {
 TEST(ModelBuilder, NodeMapping) {
   model_builder::Metadata metadata{1, TaskType::kBinaryClf, false, 1, {1}, {1, 1}};
   model_builder::TreeAnnotation tree_annotation{1, {0}, {0}};
-  model_builder::PredTransformFunc pred_transform{"sigmoid"};
+  model_builder::PostProcessorFunc postprocessor{"sigmoid"};
   std::vector<double> base_scores{0.0};
 
   int const n_trial = 10;
@@ -171,7 +171,7 @@ TEST(ModelBuilder, NodeMapping) {
       0, n_trial, config, detail::threading_utils::ParallelSchedule::Static(), [&](int i, int) {
         std::unique_ptr<model_builder::ModelBuilder> builder
             = model_builder::GetModelBuilder(TypeInfo::kFloat64, TypeInfo::kFloat64, metadata,
-                tree_annotation, pred_transform, base_scores);
+                tree_annotation, postprocessor, base_scores);
         builder->StartTree();
         builder->StartNode(0 + i * 2);
         builder->NumericalTest(0, 0.0, false, Operator::kLT, 1 + i * 2, 2 + i * 2);
@@ -243,10 +243,10 @@ TEST(ModelBuilderJSONParsing, TreeAnnotation) {
   EXPECT_EQ(tree_annotation.class_id, expected_class_id);
 }
 
-TEST(ModelBuilderJSONParsing, PredTransformFunc) {
+TEST(ModelBuilderJSONParsing, PostProcessorFunc) {
   std::string const json_str = R"(
     {
-      "pred_transform": {
+      "postprocessor": {
         "name": "sigmoid",
         "config": {
            "sigmoid_alpha": 2.0
@@ -258,16 +258,16 @@ TEST(ModelBuilderJSONParsing, PredTransformFunc) {
   parsed_json.Parse(json_str);
   AssertDocumentValid(parsed_json);
 
-  auto pred_transform
-      = model_builder::detail::json_parse::ParsePredTransformFunc(parsed_json, "pred_transform");
-  EXPECT_EQ(pred_transform.name, "sigmoid");
+  auto postprocessor
+      = model_builder::detail::json_parse::ParsePostProcessorFunc(parsed_json, "postprocessor");
+  EXPECT_EQ(postprocessor.name, "sigmoid");
 
   std::string const expected_config_json_str = R"(
     {
       "sigmoid_alpha": 2.0
     }
   )";
-  AssertJSONStringsEqual(pred_transform.config_json, expected_config_json_str);
+  AssertJSONStringsEqual(postprocessor.config_json, expected_config_json_str);
 }
 
 TEST(ModelBuilderJSONParsing, Attributes) {
@@ -342,7 +342,7 @@ TEST(ModelBuilderJSONParsing, Combined) {
         "target_id": [0, 0],
         "class_id": [0, 1]
       },
-      "pred_transform": {
+      "postprocessor": {
         "name": "sigmoid",
         "config": {
            "sigmoid_alpha": 2.0
@@ -368,7 +368,7 @@ TEST(ModelBuilderJSONParsing, Combined) {
       json_parse::ObjectMemberHandler<std::string>::Get(parsed_json, "leaf_output_type"));
   auto const metadata = json_parse::ParseMetadata(parsed_json, "metadata");
   auto const tree_annotation = json_parse::ParseTreeAnnotation(parsed_json, "tree_annotation");
-  auto const pred_transform = json_parse::ParsePredTransformFunc(parsed_json, "pred_transform");
+  auto const postprocessor = json_parse::ParsePostProcessorFunc(parsed_json, "postprocessor");
   auto const base_scores
       = json_parse::ObjectMemberHandler<std::vector<double>>::Get(parsed_json, "base_scores");
   auto const attributes = json_parse::ParseAttributes(parsed_json, "attributes");
@@ -401,8 +401,8 @@ TEST(ModelBuilderJSONParsing, Combined) {
   EXPECT_EQ(metadata.leaf_vector_shape, expected_leaf_vector_shape);
   EXPECT_EQ(tree_annotation.target_id, expected_target_id);
   EXPECT_EQ(tree_annotation.class_id, expected_class_id);
-  EXPECT_EQ(pred_transform.name, "sigmoid");
-  AssertJSONStringsEqual(pred_transform.config_json, expected_config_json_str);
+  EXPECT_EQ(postprocessor.name, "sigmoid");
+  AssertJSONStringsEqual(postprocessor.config_json, expected_config_json_str);
   EXPECT_EQ(base_scores, expected_base_scores);
   EXPECT_TRUE(attributes.has_value());
   AssertJSONStringsEqual(attributes.value(), expected_attributes_str);

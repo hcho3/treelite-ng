@@ -26,7 +26,7 @@ TreeAnnotation::TreeAnnotation(std::int32_t num_tree, std::vector<std::int32_t> 
       << "class_id field must have length equal to num_tree (" << num_tree << ")";
 }
 
-PredTransformFunc::PredTransformFunc(
+PostProcessorFunc::PostProcessorFunc(
     std::string const& name, std::optional<std::string> config_json)
     : name(name), config_json(config_json ? *config_json : "{}") {}
 
@@ -48,7 +48,7 @@ Metadata::Metadata(std::int32_t num_feature, TaskType task_type, bool average_tr
   TREELITE_CHECK(leaf_vector_shape[0] == 1 || leaf_vector_shape[0] == num_target)
       << "leaf_vector_shape[0] must be either 1 or num_target (" << num_target << "). "
       << "Currently given: leaf_vector_shape[1] = " << leaf_vector_shape[1];
-  const std::int32_t max_num_class = *std::max_element(num_class.begin(), num_class.end());
+  std::int32_t const max_num_class = *std::max_element(num_class.begin(), num_class.end());
   TREELITE_CHECK(leaf_vector_shape[1] == 1 || leaf_vector_shape[1] == max_num_class)
       << "leaf_vector_shape[1] must be either 1 or max_num_class (" << max_num_class << "). "
       << "Currently given: leaf_vector_shape[1] = " << leaf_vector_shape[1];

@@ -76,7 +76,7 @@ class TreeAnnotation:
 
 
 @dataclasses.dataclass
-class PredTransformFunc:
+class PostProcessorFunc:
     """
     Specification for postprocessor of prediction outputs
 
@@ -119,7 +119,7 @@ class ModelBuilder:
         Model metadata
     tree_annotation:
         Annotation for individual trees
-    pred_transform:
+    postprocessor:
         Postprocessor for prediction outputs
     base_scores:
         Baseline scores for targets and classes, before adding tree outputs.
@@ -135,10 +135,10 @@ class ModelBuilder:
         leaf_output_type: str,
         metadata: Metadata,
         tree_annotation: TreeAnnotation,
-        pred_transform: PredTransformFunc,
+        postprocessor: PostProcessorFunc,
         base_scores: List[float],
         attributes: Optional[Dict[Any, Any]] = None,
-    ):
+    ):  # pylint: disable=R0913
         self._handle = None
 
         handle = ctypes.c_void_p()
@@ -147,7 +147,7 @@ class ModelBuilder:
             "leaf_output_type": leaf_output_type,
             "metadata": metadata.asdict(),
             "tree_annotation": tree_annotation.asdict(),
-            "pred_transform": pred_transform.asdict(),
+            "postprocessor": postprocessor.asdict(),
             "base_scores": base_scores,
         }
         if attributes is not None:

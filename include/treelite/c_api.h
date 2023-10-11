@@ -368,7 +368,7 @@ TREELITE_DLL int TreeliteLoadSKLearnHistGradientBoostingClassifier(int n_iter, i
  *   * num_tree: Number of trees
  *   * target_id: target_id Target that each tree is associated with
  *   * class_id: Class that each tree is associated with
- * - pred_transform: Postprocessor for prediction outputs, consisting of following subfields:
+ * - postprocessor: Postprocessor for prediction outputs, consisting of following subfields:
  *   * name: Name of postprocessor
  *   * config_json: Optional JSON string to configure the postprocessor
  * - base_scores: Baseline scores for targets and classes, before adding tree outputs.

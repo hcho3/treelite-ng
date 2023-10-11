@@ -544,8 +544,8 @@ bool LearnerHandler::EndObject(std::size_t) {
   bool const average_tree_output = false;
   auto const num_target = learner_params.num_target;
 
-  treelite::model_builder::PredTransformFunc pred_transform{
-      treelite::model_loader::detail::xgboost::GetPredTransform(objective)};
+  treelite::model_builder::PostProcessorFunc postprocessor{
+      treelite::model_loader::detail::xgboost::GetPostProcessor(objective)};
   output.objective_name = objective;  // Save objective name, to use later
 
   treelite::TaskType task_type;
@@ -608,7 +608,7 @@ bool LearnerHandler::EndObject(std::size_t) {
   // 1.0 it's the original value provided by user.
   bool const need_transform_to_margin = output.version.empty() || output.version[0] >= 1;
   if (need_transform_to_margin) {
-    base_score = xgboost::TransformBaseScoreToMargin(pred_transform.name, base_score);
+    base_score = xgboost::TransformBaseScoreToMargin(postprocessor.name, base_score);
   }
   // For now, XGBoost produces a scalar base_score
   // Assume: Either num_target or num_class must be 1
@@ -619,7 +619,7 @@ bool LearnerHandler::EndObject(std::size_t) {
       num_feature, task_type, average_tree_output, num_target, num_class, leaf_vector_shape};
   treelite::model_builder::TreeAnnotation tree_annotation{num_tree, target_id, class_id};
   output.builder->InitializeMetadata(
-      metadata, tree_annotation, pred_transform, base_scores, std::nullopt);
+      metadata, tree_annotation, postprocessor, base_scores, std::nullopt);
 
   return pop_handler();
 }
@@ -773,7 +773,7 @@ std::unique_ptr<treelite::Model> ParseStream(std::unique_ptr<StreamType> input_s
       = reader.Parse<rapidjson::ParseFlag::kParseNanAndInfFlag>(*input_stream, *handler);
   if (!result) {
     auto const error_code = result.Code();
-    const std::size_t offset = result.Offset();
+    std::size_t const offset = result.Offset();
     std::string diagnostic = error_handler(offset);
     TREELITE_LOG(FATAL) << "Provided JSON could not be parsed as XGBoost model. "
                         << "Parsing error at offset " << offset << ": "

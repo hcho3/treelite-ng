@@ -142,8 +142,8 @@ void SerializeTaskParametersToJSON(WriterType& writer, treelite::Model const& mo
 
 template <typename WriterType>
 void SerializeModelParametersToJSON(WriterType& writer, treelite::Model const& model) {
-  writer.Key("pred_transform");
-  WriteString(writer, model.pred_transform);
+  writer.Key("postprocessor");
+  WriteString(writer, model.postprocessor);
   writer.Key("sigmoid_alpha");
   writer.Double(model.sigmoid_alpha);
   writer.Key("ratio_c");

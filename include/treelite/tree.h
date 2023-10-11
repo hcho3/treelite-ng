@@ -190,8 +190,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<LeafOutputType> LeafVector(int nid) const {
-    const std::size_t offset_begin = leaf_vector_begin_[nid];
-    const std::size_t offset_end = leaf_vector_end_[nid];
+    std::size_t const offset_begin = leaf_vector_begin_[nid];
+    std::size_t const offset_end = leaf_vector_end_[nid];
     if (offset_begin >= leaf_vector_.Size() || offset_end > leaf_vector_.Size()) {
       // Return empty vector, to indicate the lack of leaf vector
       return std::vector<LeafOutputType>();
@@ -231,8 +231,8 @@ class Tree {
    * \param nid ID of node being queried
    */
   inline std::vector<std::uint32_t> CategoryList(int nid) const {
-    const std::size_t offset_begin = category_list_begin_[nid];
-    const std::size_t offset_end = category_list_end_[nid];
+    std::size_t const offset_begin = category_list_begin_[nid];
+    std::size_t const offset_end = category_list_end_[nid];
     if (offset_begin >= category_list_.Size() || offset_end > category_list_.Size()) {
       // Return empty vector, to indicate the lack of any category list
       // The node might be a numerical split
@@ -505,7 +505,7 @@ class Model {
   ContiguousArray<std::int32_t> target_id;
   ContiguousArray<std::int32_t> class_id;
   /* Other model parameters */
-  std::string pred_transform;
+  std::string postprocessor;
   float sigmoid_alpha{1.0f};
   float ratio_c{1.0f};
   ContiguousArray<double> base_scores;

@@ -19,8 +19,7 @@
 #include <type_traits>
 #include <variant>
 
-#include "./pred_transform.h"
-#include "pred_transform.h"
+#include "./postprocessor.h"
 
 namespace treelite::gtil {
 
@@ -120,7 +119,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
     Array3DView<InputT> output_view) {
   auto leaf_out = tree.LeafVector(leaf_id);
   if (model.target_id[tree_id] == -1 && model.class_id[tree_id] == -1) {
-    const std::vector<std::int32_t> expected_shape{model.num_target, max_num_class};
+    std::vector<std::int32_t> const expected_shape{model.num_target, max_num_class};
     TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_shape);
 
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, max_num_class);
@@ -130,7 +129,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
       }
     }
   } else if (model.target_id[tree_id] == -1) {
-    const std::vector<std::int32_t> expected_leaf_shape{model.num_target, 1};
+    std::vector<std::int32_t> const expected_leaf_shape{model.num_target, 1};
     TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
 
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), model.num_target, 1);
@@ -139,7 +138,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
       output_view(target_id, row_id, class_id) += leaf_view(target_id, 0);
     }
   } else if (model.class_id[tree_id] == -1) {
-    const std::vector<std::int32_t> expected_leaf_shape{1, max_num_class};
+    std::vector<std::int32_t> const expected_leaf_shape{1, max_num_class};
     TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
 
     auto leaf_view = Array2DView<LeafOutputT>(leaf_out.data(), 1, max_num_class);
@@ -148,7 +147,7 @@ void OutputLeafVector(Model const& model, Tree<ThresholdT, LeafOutputT> const& t
       output_view(target_id, row_id, class_id) += leaf_view(0, class_id);
     }
   } else {
-    const std::vector<std::int32_t> expected_leaf_shape{1, 1};
+    std::vector<std::int32_t> const expected_leaf_shape{1, 1};
     TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
 
     auto const target_id = model.target_id[tree_id];
@@ -164,7 +163,7 @@ void OutputLeafValue(Model const& model, Tree<ThresholdT, LeafOutputT> const& tr
   auto const class_id = model.class_id[tree_id];
   TREELITE_CHECK(target_id != -1 && class_id != -1);
 
-  const std::vector<std::int32_t> expected_leaf_shape{1, 1};
+  std::vector<std::int32_t> const expected_leaf_shape{1, 1};
   TREELITE_CHECK(model.leaf_vector_shape.AsVector() == expected_leaf_shape);
 
   output_view(target_id, row_id, class_id) += tree.LeafValue(leaf_id);
@@ -248,9 +247,9 @@ void PredictRaw(Model const& model, InputT const* input, std::uint64_t num_row, 
 }
 
 template <typename InputT>
-void ApplyPredTransform(Model const& model, InputT* output, std::uint64_t num_row,
+void ApplyPostProcessor(Model const& model, InputT* output, std::uint64_t num_row,
     Configuration const& pred_config, detail::threading_utils::ThreadConfig const& thread_config) {
-  auto pred_transform_func = gtil::GetPredTransformFunc<InputT>(model.pred_transform);
+  auto postprocessor_func = gtil::GetPostProcessorFunc<InputT>(model.postprocessor);
   auto max_num_class
       = *std::max_element(model.num_class.Data(), model.num_class.Data() + model.num_target);
   auto output_view = Array3DView<InputT>(output, model.num_target, num_row, max_num_class);
@@ -261,7 +260,7 @@ void ApplyPredTransform(Model const& model, InputT* output, std::uint64_t num_ro
         detail::threading_utils::ParallelSchedule::Static(), [&](std::size_t row_id, int) {
           auto row = stdex::submdspan(output_view, target_id, row_id, stdex::full_extent);
           static_assert(std::is_same_v<decltype(row), Array1DView<InputT>>);
-          pred_transform_func(model, num_class, row.data_handle());
+          postprocessor_func(model, num_class, row.data_handle());
         });
   }
 }
@@ -340,7 +339,7 @@ void Predict(Model const& model, InputT const* input, std::uint64_t num_row, Inp
   auto thread_config = detail::threading_utils::ThreadConfig(config.nthread);
   if (config.pred_kind == PredictKind::kPredictDefault) {
     PredictRaw(model, input, num_row, output, thread_config);
-    ApplyPredTransform(model, output, num_row, config, thread_config);
+    ApplyPostProcessor(model, output, num_row, config, thread_config);
   } else if (config.pred_kind == PredictKind::kPredictRaw) {
     PredictRaw(model, input, num_row, output, thread_config);
   } else if (config.pred_kind == PredictKind::kPredictLeafID) {

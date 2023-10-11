@@ -23,10 +23,10 @@ struct ProbToMargin {
 };
 
 // Get correct prediction transform function, depending on objective function
-std::string GetPredTransform(std::string const& objective_name);
+std::string GetPostProcessor(std::string const& objective_name);
 
 // Transform base score from probability into margin score
-double TransformBaseScoreToMargin(std::string const& pred_transform, double base_score);
+double TransformBaseScoreToMargin(std::string const& postprocessor, double base_score);
 
 enum FeatureType { kNumerical = 0, kCategorical = 1 };
 

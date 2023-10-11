@@ -148,8 +148,8 @@ inline void Tree<ThresholdType, LeafOutputType>::SetCategoricalTest(int nid,
     bool category_list_right_child) {
   TREELITE_CHECK(CategoryList(nid).empty()) << "Cannot set leaf vector twice for same node";
 
-  const std::size_t begin = category_list_.Size();
-  const std::size_t end = begin + category_list.size();
+  std::size_t const begin = category_list_.Size();
+  std::size_t const end = begin + category_list.size();
   category_list_.Extend(category_list);
   category_list_begin_.at(nid) = begin;
   category_list_end_.at(nid) = end;

@@ -28,7 +28,7 @@ namespace model_builder {
 
 class Metadata;
 class TreeAnnotation;
-class PredTransformFunc;
+class PostProcessorFunc;
 
 /*!
  * \brief Model builder interface.
@@ -124,14 +124,14 @@ class ModelBuilder {
    * \brief Specify a metadata for this model, if no metadata was previously specified.
    * \param metadata Model metadata
    * \param tree_annotation Annotation for individual trees
-   * \param pred_transform Postprocessor for prediction outputs
+   * \param postprocessor Postprocessor for prediction outputs
    * \param base_scores Baseline scores for targets and classes, before adding tree outputs.
    *                    Also known as the intercept.
    * \param attributes Arbitrary JSON object, to be stored in the "attributes" field in the
    *                   model object.
    */
   virtual void InitializeMetadata(Metadata const& metadata, TreeAnnotation const& tree_annotation,
-      PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+      PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
       std::optional<std::string> const& attributes)
       = 0;
   /*!
@@ -171,15 +171,15 @@ struct TreeAnnotation {
 /*!
  * \brief Specification for postprocessor of prediction outputs.
  */
-struct PredTransformFunc {
+struct PostProcessorFunc {
   std::string name{};
   std::string config_json{};
   /*!
-   * \brief Constructor for PredTransformFunc object
+   * \brief Constructor for PostProcessorFunc object
    * \param name Name of the postprocessor
    * \param config_json Optional parameters for the postprocessor
    */
-  explicit PredTransformFunc(
+  explicit PostProcessorFunc(
       std::string const& name, std::optional<std::string> config_json = std::nullopt);
 };
 
@@ -213,7 +213,7 @@ struct Metadata {
  * \param leaf_output_type Type of leaf outputs in the tree model
  * \param metadata Model metadata
  * \param tree_annotation Annotation for individual trees
- * \param pred_transform Postprocessor for prediction outputs
+ * \param postprocessor Postprocessor for prediction outputs
  * \param base_scores Baseline scores for targets and classes, before adding tree outputs.
  *                    Also known as the intercept.
  * \param attributes Arbitrary JSON object, to be stored in the "attributes" field in the
@@ -222,7 +222,7 @@ struct Metadata {
  */
 std::unique_ptr<ModelBuilder> GetModelBuilder(TypeInfo threshold_type, TypeInfo leaf_output_type,
     Metadata const& metadata, TreeAnnotation const& tree_annotation,
-    PredTransformFunc const& pred_transform, std::vector<double> const& base_scores,
+    PostProcessorFunc const& postprocessor, std::vector<double> const& base_scores,
     std::optional<std::string> const& attributes = std::nullopt);
 
 /*!

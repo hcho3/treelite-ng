@@ -1,10 +1,10 @@
 /*!
  * Copyright (c) 2021-2023 by Contributors
- * \file pred_transform.cc
+ * \file postprocessor.cc
  * \author Hyunsu Cho
  * \brief Functions to post-process prediction results
  */
-#include "./pred_transform.h"
+#include "./postprocessor.h"
 
 #include <treelite/tree.h>
 
@@ -14,7 +14,7 @@
 
 namespace treelite::gtil {
 
-namespace detail::pred_transform {
+namespace detail::postprocessor {
 
 template <typename InputT>
 void identity(treelite::Model const&, std::int32_t, InputT*) {}
@@ -81,37 +81,37 @@ void multiclass_ova(treelite::Model const& model, std::int32_t num_class, InputT
   }
 }
 
-}  // namespace detail::pred_transform
+}  // namespace detail::postprocessor
 
 template <typename InputT>
-PredTransformFunc<InputT> GetPredTransformFunc(std::string const& name) {
+PostProcessorFunc<InputT> GetPostProcessorFunc(std::string const& name) {
   if (name == "identity") {
-    return detail::pred_transform::identity<InputT>;
+    return detail::postprocessor::identity<InputT>;
   } else if (name == "signed_square") {
-    return detail::pred_transform::signed_square<InputT>;
+    return detail::postprocessor::signed_square<InputT>;
   } else if (name == "hinge") {
-    return detail::pred_transform::hinge<InputT>;
+    return detail::postprocessor::hinge<InputT>;
   } else if (name == "sigmoid") {
-    return detail::pred_transform::sigmoid<InputT>;
+    return detail::postprocessor::sigmoid<InputT>;
   } else if (name == "exponential") {
-    return detail::pred_transform::exponential<InputT>;
+    return detail::postprocessor::exponential<InputT>;
   } else if (name == "exponential_standard_ratio") {
-    return detail::pred_transform::exponential_standard_ratio<InputT>;
+    return detail::postprocessor::exponential_standard_ratio<InputT>;
   } else if (name == "logarithm_one_plus_exp") {
-    return detail::pred_transform::logarithm_one_plus_exp<InputT>;
+    return detail::postprocessor::logarithm_one_plus_exp<InputT>;
   } else if (name == "identity_multiclass") {
-    return detail::pred_transform::identity_multiclass<InputT>;
+    return detail::postprocessor::identity_multiclass<InputT>;
   } else if (name == "softmax") {
-    return detail::pred_transform::softmax<InputT>;
+    return detail::postprocessor::softmax<InputT>;
   } else if (name == "multiclass_ova") {
-    return detail::pred_transform::multiclass_ova<InputT>;
+    return detail::postprocessor::multiclass_ova<InputT>;
   } else {
     TREELITE_LOG(FATAL) << "Post-processor named '" << name << "' not found";
   }
   return nullptr;
 }
 
-template PredTransformFunc<float> GetPredTransformFunc(std::string const&);
-template PredTransformFunc<double> GetPredTransformFunc(std::string const&);
+template PostProcessorFunc<float> GetPostProcessorFunc(std::string const&);
+template PostProcessorFunc<double> GetPostProcessorFunc(std::string const&);
 
 }  // namespace treelite::gtil
