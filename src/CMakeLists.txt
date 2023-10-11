@@ -1,6 +1,7 @@
 # Object library
 
-add_library(objtreelite OBJECT)
+add_library(objtreelite OBJECT
+        serializer.cc)
 target_link_libraries(objtreelite PRIVATE RapidJSON::rapidjson std::mdspan)
 
 if(USE_OPENMP)
@@ -73,6 +74,8 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/omp_exception.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/threading_utils.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/operator.h
@@ -81,6 +84,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
+    serializer.cc
     c_api/c_api_error.cc
     c_api/c_api_utils.h
     c_api/gtil.cc

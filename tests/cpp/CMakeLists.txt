@@ -1,4 +1,5 @@
-add_executable(treelite_cpp_test)
+add_executable(treelite_cpp_test
+        test_serializer.cc)
 set_target_properties(treelite_cpp_test
     PROPERTIES
     CXX_STANDARD 17
@@ -19,6 +20,7 @@ target_sources(treelite_cpp_test
     test_gtil.cc
     test_model_builder.cc
     test_model_loader.cc
+    test_serializer.cc
 )
 
 target_include_directories(treelite_cpp_test

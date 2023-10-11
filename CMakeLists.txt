@@ -87,7 +87,9 @@ if(BUILD_CPP_TEST)
   add_subdirectory(tests/cpp)
 endif()
 
-add_library(treelite SHARED)
+add_library(treelite SHARED
+        include/treelite/detail/serializer.h
+        include/treelite/detail/serializer_mixins.h)
 target_link_libraries(treelite PRIVATE objtreelite)
 
 set(TREELITE_TARGETS treelite)
