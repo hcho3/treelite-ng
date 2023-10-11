@@ -31,18 +31,18 @@ namespace treelite::model_builder {
 namespace detail {
 
 void ConfigurePostProcessor(Model* model, PostProcessorFunc const& postprocessor) {
-  rapidjson::Document config;
-  config.Parse(postprocessor.config_json);
-  TREELITE_CHECK(!config.HasParseError())
-      << "Error when parsing JSON config: offset " << config.GetErrorOffset() << ", "
-      << rapidjson::GetParseError_En(config.GetParseError());
-  TREELITE_CHECK(config.IsObject()) << "Expected an object";
   if (postprocessor.name == "sigmoid" || postprocessor.name == "multiclass_ova") {
-    model->sigmoid_alpha
-        = json_parse::ObjectMemberHandler<float>::Get(config, "sigmoid_alpha", 1.0f);
-  }
-  if (postprocessor.name == "exponential_standard_ratio") {
-    model->ratio_c = json_parse::ObjectMemberHandler<float>::Get(config, "ratio_c", 1.0f);
+    model->sigmoid_alpha = 1.0f;
+    auto itr = postprocessor.config.find("sigmoid_alpha");
+    if (itr != postprocessor.config.end() && std::holds_alternative<double>(itr->second)) {
+      model->sigmoid_alpha = static_cast<float>(std::get<double>(itr->second));
+    }
+  } else if (postprocessor.name == "exponential_standard_ratio") {
+    model->ratio_c = 1.0f;
+    auto itr = postprocessor.config.find("ratio_c");
+    if (itr != postprocessor.config.end() && std::holds_alternative<double>(itr->second)) {
+      model->ratio_c = static_cast<float>(std::get<double>(itr->second));
+    }
   }
 }
 

@@ -7,7 +7,6 @@
 
 #include "./detail/lightgbm.h"
 
-#include <fmt/format.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
 #include <treelite/logging.h>
@@ -476,8 +475,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK(num_class >= 0 && num_class == num_class_ && alpha > 0.0f)
         << "Ill-formed LightGBM model file: not a valid multiclassova objective";
-    postprocessor
-        = PostProcessorFunc{"multiclass_ova", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
+    postprocessor = PostProcessorFunc{"multiclass_ova", {{"sigmoid_alpha", alpha}}};
   } else if (obj_name_ == "binary") {
     // Validate alpha parameter
     float alpha = -1.0f;
@@ -492,15 +490,9 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi) {
     }
     TREELITE_CHECK_GT(alpha, 0.0f)
         << "Ill-formed LightGBM model file: not a valid binary objective";
-    postprocessor
-        = PostProcessorFunc{"sigmoid", fmt::format(R"({{ "sigmoid_alpha": {} }})", alpha)};
+    postprocessor = PostProcessorFunc{"sigmoid", {{"sigmoid_alpha", alpha}}};
   } else if (obj_name_ == "cross_entropy") {
-    postprocessor = PostProcessorFunc{"sigmoid",
-        R"(
-          {
-            "sigmoid_alpha": 1.0
-          }
-        )"};
+    postprocessor = PostProcessorFunc{"sigmoid", {{"sigmoid_alpha", 1.0}}};
   } else if (obj_name_ == "cross_entropy_lambda") {
     postprocessor = PostProcessorFunc{"logarithm_one_plus_exp"};
   } else if (obj_name_ == "poisson" || obj_name_ == "gamma" || obj_name_ == "tweedie") {

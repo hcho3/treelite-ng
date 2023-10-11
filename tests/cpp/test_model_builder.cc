@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -262,12 +263,9 @@ TEST(ModelBuilderJSONParsing, PostProcessorFunc) {
       = model_builder::detail::json_parse::ParsePostProcessorFunc(parsed_json, "postprocessor");
   EXPECT_EQ(postprocessor.name, "sigmoid");
 
-  std::string const expected_config_json_str = R"(
-    {
-      "sigmoid_alpha": 2.0
-    }
-  )";
-  AssertJSONStringsEqual(postprocessor.config_json, expected_config_json_str);
+  std::map<std::string, treelite::model_builder::PostProcessorConfigParam> const
+      expected_postprocessor_config{{"sigmoid_alpha", 2.0}};
+  EXPECT_EQ(postprocessor.config, expected_postprocessor_config);
 }
 
 TEST(ModelBuilderJSONParsing, Attributes) {
@@ -377,11 +375,9 @@ TEST(ModelBuilderJSONParsing, Combined) {
   std::array<std::int32_t, 2> const expected_leaf_vector_shape{1, 1};
   std::vector<std::int32_t> const expected_target_id{0, 0};
   std::vector<std::int32_t> const expected_class_id{0, 1};
-  std::string const expected_config_json_str = R"(
-    {
-      "sigmoid_alpha": 2.0
-    }
-  )";
+  std::map<std::string, treelite::model_builder::PostProcessorConfigParam> const
+      expected_postprocessor_config
+      = {{"sigmoid_alpha", 2.0}};
   std::vector<double> const expected_base_scores{0.5};
   std::string const expected_attributes_str = R"(
     {
@@ -402,7 +398,7 @@ TEST(ModelBuilderJSONParsing, Combined) {
   EXPECT_EQ(tree_annotation.target_id, expected_target_id);
   EXPECT_EQ(tree_annotation.class_id, expected_class_id);
   EXPECT_EQ(postprocessor.name, "sigmoid");
-  AssertJSONStringsEqual(postprocessor.config_json, expected_config_json_str);
+  EXPECT_EQ(postprocessor.config, expected_postprocessor_config);
   EXPECT_EQ(base_scores, expected_base_scores);
   EXPECT_TRUE(attributes.has_value());
   AssertJSONStringsEqual(attributes.value(), expected_attributes_str);

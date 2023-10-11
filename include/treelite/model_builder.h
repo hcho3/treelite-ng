@@ -15,9 +15,11 @@
 
 #include <array>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace treelite {
@@ -168,19 +170,27 @@ struct TreeAnnotation {
       std::vector<std::int32_t> const& class_id);
 };
 
+using PostProcessorConfigParam = std::variant<std::int64_t, double, std::string>;
+
 /*!
  * \brief Specification for postprocessor of prediction outputs.
  */
 struct PostProcessorFunc {
   std::string name{};
-  std::string config_json{};
+  std::map<std::string, PostProcessorConfigParam> config{};
+  /*!
+   * \brief Constructor for PostProcessorFunc object, with no configuration parameters
+   * \param name Name of the postprocessor
+   */
+  explicit PostProcessorFunc(std::string const& name);
   /*!
    * \brief Constructor for PostProcessorFunc object
    * \param name Name of the postprocessor
-   * \param config_json Optional parameters for the postprocessor
+   * \param config Optional parameters to configure the postprocessor.
+   *               Pass an empty map to indicate the lack of parameters.
    */
-  explicit PostProcessorFunc(
-      std::string const& name, std::optional<std::string> config_json = std::nullopt);
+  PostProcessorFunc(
+      std::string const& name, std::map<std::string, PostProcessorConfigParam> const& config);
 };
 
 /*!

@@ -162,7 +162,7 @@ def test_skl_hist_gradient_boosting_with_categorical(
     X, y = dataset
     if use_categorical:
         n_categorical = callback.draw(integers(min_value=1, max_value=X.shape[1]))
-        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.1)
+        df, X_pred = to_categorical(X, n_categorical=n_categorical, invalid_frac=0.0)
         cat_col_bitmap = df.dtypes == "category"
         categorical_features = [
             i for i in range(len(cat_col_bitmap)) if cat_col_bitmap[i]

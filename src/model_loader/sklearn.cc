@@ -109,9 +109,8 @@ class IsolationForestMixIn {
         n_trees, std::vector<std::int32_t>(n_trees, 0), std::vector<std::int32_t>(n_trees, 0)};
 
     std::ostringstream oss;
-    oss << "{\"ratio_c\": " << ratio_c_ << "}";
-    auto const config_json = oss.str();
-    model_builder::PostProcessorFunc postprocessor{"exponential_standard_ratio", config_json};
+    model_builder::PostProcessorFunc postprocessor{
+        "exponential_standard_ratio", {{"ratio_c", ratio_c_}}};
 
     builder.InitializeMetadata(metadata, tree_annotation, postprocessor, {0.0}, std::nullopt);
   }

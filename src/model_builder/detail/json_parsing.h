@@ -20,6 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -185,20 +186,25 @@ TreeAnnotation ParseTreeAnnotation(DocumentT const& obj, std::string const& fiel
 
 template <typename DocumentT>
 PostProcessorFunc ParsePostProcessorFunc(DocumentT const& obj, std::string const& field_name) {
-  std::string config_json;
+  std::map<std::string, PostProcessorConfigParam> config{};
   auto const& obj_ = GetMember(obj, field_name);
   auto itr = obj_.FindMember("config");
   if (itr != obj_.MemberEnd()) {
     TREELITE_CHECK(itr->value.IsObject()) << "Expected an object for field 'config'";
-    rapidjson::StringBuffer buffer;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-    itr->value.Accept(writer);
-    config_json = std::string(buffer.GetString());
-  } else {
-    config_json = "{}";  // default to empty JSON object
+    for (auto const& m : itr->value.GetObject()) {
+      if (m.value.IsDouble()) {
+        config.emplace(m.name.GetString(), m.value.GetDouble());
+      } else if (m.value.IsString()) {
+        config.emplace(m.name.GetString(), m.value.GetString());
+      } else if (m.value.IsInt64()) {
+        config.emplace(m.name.GetString(), m.value.GetInt64());
+      } else {
+        TREELITE_LOG(FATAL) << "Unsupported parameter type: " << m.value.GetType();
+      }
+    }
   }
 
-  return PostProcessorFunc{ObjectMemberHandler<std::string>::Get(obj_, "name"), config_json};
+  return PostProcessorFunc{ObjectMemberHandler<std::string>::Get(obj_, "name"), config};
 }
 
 template <typename DocumentT>

@@ -26,9 +26,11 @@ TreeAnnotation::TreeAnnotation(std::int32_t num_tree, std::vector<std::int32_t> 
       << "class_id field must have length equal to num_tree (" << num_tree << ")";
 }
 
+PostProcessorFunc::PostProcessorFunc(std::string const& name) : PostProcessorFunc(name, {}) {}
+
 PostProcessorFunc::PostProcessorFunc(
-    std::string const& name, std::optional<std::string> config_json)
-    : name(name), config_json(config_json ? *config_json : "{}") {}
+    std::string const& name, std::map<std::string, PostProcessorConfigParam> const& config)
+    : name(name), config(config) {}
 
 Metadata::Metadata(std::int32_t num_feature, TaskType task_type, bool average_tree_output,
     std::int32_t num_target, std::vector<std::int32_t> const& num_class,
