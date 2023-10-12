@@ -39,7 +39,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 namespace treelite::model_loader {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(std::string const& filename) {
-  std::ifstream fi = detail::OpenFileForReadAsStream(filename, true);
+  std::ifstream fi = detail::OpenFileForReadAsStream(filename);
   return ParseStream(fi);
 }
 

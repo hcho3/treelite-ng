@@ -17,32 +17,20 @@
 
 namespace treelite::model_loader::detail {
 
-inline std::ifstream OpenFileForReadAsStream(std::string const& filename, bool binary = false) {
+inline std::ifstream OpenFileForReadAsStream(std::string const& filename) {
   auto path = std::filesystem::weakly_canonical(std::filesystem::u8path(filename));
   TREELITE_CHECK(std::filesystem::exists(path)) << "Path " << filename << " does not exist";
-#ifdef _WIN32
   return std::ifstream(path, std::ios::in | std::ios::binary);
-#else
-  if (binary) {
-    return std::ifstream(path, std::ios::in | std::ios::binary);
-  } else {
-    return std::ifstream(path, std::ios::in);
-  }
-#endif
 }
 
-inline FILE* OpenFileForReadAsFilePtr(std::string const& filename, bool binary = false) {
+inline FILE* OpenFileForReadAsFilePtr(std::string const& filename) {
   auto path = std::filesystem::weakly_canonical(std::filesystem::u8path(filename));
   TREELITE_CHECK(std::filesystem::exists(path)) << "Path " << filename << " does not exist";
   FILE* fp;
 #ifdef _WIN32
   fp = _wfopen(path.wstring().c_str(), L"rb");
 #else
-  if (binary) {
-    fp = std::fopen(path.string().c_str(), "rb");
-  } else {
-    fp = std::fopen(path.string().c_str(), "r");
-  }
+  fp = std::fopen(path.string().c_str(), "rb");
 #endif
   TREELITE_CHECK(fp) << "Could not open file " << filename;
   return fp;
