@@ -238,7 +238,7 @@ class Deserializer {
 
 }  // namespace detail::serializer
 
-std::vector<PyBufferFrame> Model::GetPyBuffer() {
+std::vector<PyBufferFrame> Model::SerializeToPyBuffer() {
   auto mixin = std::make_shared<detail::serializer::PyBufferSerializerMixIn>();
   detail::serializer::Serializer<detail::serializer::PyBufferSerializerMixIn> serializer{mixin};
   serializer.SerializeHeader(*this);
@@ -246,7 +246,7 @@ std::vector<PyBufferFrame> Model::GetPyBuffer() {
   return mixin->GetFrames();
 }
 
-std::unique_ptr<Model> Model::CreateFromPyBuffer(std::vector<PyBufferFrame> const& frames) {
+std::unique_ptr<Model> Model::DeserializeFromPyBuffer(std::vector<PyBufferFrame> const& frames) {
   auto mixin = std::make_shared<detail::serializer::PyBufferDeserializerMixIn>(frames);
   detail::serializer::Deserializer<detail::serializer::PyBufferDeserializerMixIn> deserializer{
       mixin};

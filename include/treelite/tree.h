@@ -475,8 +475,8 @@ class Model {
      +------------------+----------+----------+----------------+-----------+ */
 
   /* In-memory serialization, zero-copy */
-  TREELITE_DLL_EXPORT std::vector<PyBufferFrame> GetPyBuffer();
-  TREELITE_DLL_EXPORT static std::unique_ptr<Model> CreateFromPyBuffer(
+  TREELITE_DLL_EXPORT std::vector<PyBufferFrame> SerializeToPyBuffer();
+  TREELITE_DLL_EXPORT static std::unique_ptr<Model> DeserializeFromPyBuffer(
       std::vector<PyBufferFrame> const& frames);
 
   /* Serialization to a file stream */
