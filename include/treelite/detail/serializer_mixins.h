@@ -113,7 +113,7 @@ class PyBufferDeserializerMixIn {
   }
 
   void SkipOptionalField() {
-    ++cur_idx_;
+    cur_idx_ += 2;  // field name + content
   }
 
  private:
