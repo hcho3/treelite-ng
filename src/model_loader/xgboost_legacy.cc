@@ -5,6 +5,7 @@
  * \author Hyunsu Cho
  */
 
+#include <treelite/detail/file_utils.h>
 #include <treelite/enum/operator.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
@@ -25,7 +26,6 @@
 #include <variant>
 
 #include "./detail/xgboost.h"
-#include "detail/file_utils.h"
 #include "detail/string_utils.h"
 
 namespace fs = std::filesystem;
@@ -39,7 +39,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 namespace treelite::model_loader {
 
 std::unique_ptr<treelite::Model> LoadXGBoostModelLegacyBinary(std::string const& filename) {
-  std::ifstream fi = detail::OpenFileForReadAsStream(filename);
+  std::ifstream fi = treelite::detail::OpenFileForReadAsStream(filename);
   return ParseStream(fi);
 }
 

@@ -124,14 +124,6 @@ inline void Tree<ThresholdType, LeafOutputType>::Init() {
 }
 
 template <typename ThresholdType, typename LeafOutputType>
-inline void Tree<ThresholdType, LeafOutputType>::AddChilds(int nid) {
-  int const cleft = this->AllocNode();
-  int const cright = this->AllocNode();
-  cleft_.at(nid) = cleft;
-  cright_.at(nid) = cright;
-}
-
-template <typename ThresholdType, typename LeafOutputType>
 inline void Tree<ThresholdType, LeafOutputType>::SetNumericalTest(
     int nid, std::int32_t split_index, ThresholdType threshold, bool default_left, Operator cmp) {
   split_index_.at(nid) = split_index;

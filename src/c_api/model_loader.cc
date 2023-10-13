@@ -10,6 +10,9 @@
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
 
+#include <cstddef>
+#include <cstdint>
+
 int TreeliteLoadXGBoostModelLegacyBinary(
     char const* filename, [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {
   // config_json is unused for now
@@ -20,7 +23,7 @@ int TreeliteLoadXGBoostModelLegacyBinary(
   API_END();
 }
 
-int TreeliteLoadXGBoostModelLegacyBinaryFromMemoryBuffer(void const* buf, size_t len,
+int TreeliteLoadXGBoostModelLegacyBinaryFromMemoryBuffer(void const* buf, std::uint64_t len,
     [[maybe_unused]] char const* config_json, TreeliteModelHandle* out) {
   // config_json is unused for now
   API_BEGIN();
@@ -40,7 +43,7 @@ int TreeliteLoadXGBoostModel(
 }
 
 int TreeliteLoadXGBoostModelFromString(
-    char const* json_str, size_t length, char const* config_json, TreeliteModelHandle* out) {
+    char const* json_str, std::uint64_t length, char const* config_json, TreeliteModelHandle* out) {
   API_BEGIN();
   std::unique_ptr<treelite::Model> model
       = treelite::model_loader::LoadXGBoostModelFromString(json_str, length, config_json);

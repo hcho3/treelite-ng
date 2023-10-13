@@ -10,6 +10,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
+#include <treelite/detail/file_utils.h>
 #include <treelite/logging.h>
 #include <treelite/model_loader.h>
 #include <treelite/tree.h>
@@ -27,7 +28,6 @@
 #include <utility>
 #include <variant>
 
-#include "detail/file_utils.h"
 #include "detail/string_utils.h"
 #include "detail/xgboost.h"
 
@@ -47,7 +47,7 @@ std::unique_ptr<treelite::Model> LoadXGBoostModel(
     std::string const& filename, char const* config_json) {
   char read_buffer[65536];
 
-  FILE* fp = detail::OpenFileForReadAsFilePtr(filename);
+  FILE* fp = treelite::detail::OpenFileForReadAsFilePtr(filename);
 
   auto input_stream
       = std::make_unique<rapidjson::FileReadStream>(fp, read_buffer, sizeof(read_buffer));

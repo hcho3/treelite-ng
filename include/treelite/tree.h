@@ -128,12 +128,6 @@ class Tree {
   inline void Init();
   /*! \brief Allocate a new node and return the node's ID */
   inline int AllocNode();
-  /*!
-   * \brief Add child nodes to node
-   * \param nid node id to add children to
-   * TODO(hcho3): remove this method
-   */
-  inline void AddChilds(int nid);
 
   /** Getters **/
   /*!

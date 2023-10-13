@@ -9,6 +9,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
+#include <treelite/detail/file_utils.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
 #include <treelite/error.h>
@@ -58,18 +59,14 @@ inline void TestRoundTrip(treelite::Model* model) {
   for (int i = 0; i < 2; ++i) {
     // Test round trip with serialization to a file stream
     std::filesystem::path tmpdir = std::filesystem::temp_directory_path();
-    std::filesystem::path filename = tmpdir / (std::string("binary") + std::to_string(i) + ".bin");
+    std::filesystem::path filepath = tmpdir / (std::string("binary") + std::to_string(i) + ".bin");
     std::unique_ptr<treelite::Model> received_model;
     {
-      std::ofstream ofs(filename, std::ios::out | std::ios::binary);
-      ASSERT_TRUE(ofs);
-      ofs.exceptions(std::ios::failbit | std::ios::badbit);
+      std::ofstream ofs = treelite::detail::OpenFileForWriteAsStream(filepath);
       model->SerializeToStream(ofs);
     }
     {
-      std::ifstream ifs(filename, std::ios::in | std::ios::binary);
-      ASSERT_TRUE(ifs);
-      ifs.exceptions(std::ios::failbit | std::ios::badbit);
+      std::ifstream ifs = treelite::detail::OpenFileForReadAsStream(filepath);
       received_model = treelite::Model::DeserializeFromStream(ifs);
     }
 
@@ -77,7 +74,7 @@ inline void TestRoundTrip(treelite::Model* model) {
     // causing an OOM error
     ASSERT_TRUE(model->DumpAsJSON(false) == received_model->DumpAsJSON(false));
 
-    std::filesystem::remove(filename);
+    std::filesystem::remove(filepath);
   }
 }
 

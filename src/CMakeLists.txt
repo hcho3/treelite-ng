@@ -73,6 +73,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/thread_local.h
     ${PROJECT_SOURCE_DIR}/include/treelite/tree.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/contiguous_array.h
+    ${PROJECT_SOURCE_DIR}/include/treelite/detail/file_utils.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/omp_exception.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer.h
     ${PROJECT_SOURCE_DIR}/include/treelite/detail/serializer_mixins.h
@@ -84,6 +85,7 @@ target_sources(objtreelite
     ${PROJECT_SOURCE_DIR}/include/treelite/enum/typeinfo.h
     json_serializer.cc
     logging.cc
+    model_concat.cc
     serializer.cc
     c_api/c_api_error.cc
     c_api/c_api_utils.h
@@ -92,6 +94,7 @@ target_sources(objtreelite
     c_api/model.cc
     c_api/model_builder.cc
     c_api/model_loader.cc
+    c_api/serializer.cc
     c_api/sklearn.cc
     enum/operator.cc
     enum/task_type.cc
@@ -109,7 +112,6 @@ target_sources(objtreelite
     model_loader/sklearn.cc
     model_loader/xgboost_json.cc
     model_loader/xgboost_legacy.cc
-    model_loader/detail/file_utils.h
     model_loader/detail/lightgbm.h
     model_loader/detail/string_utils.h
     model_loader/detail/xgboost.cc

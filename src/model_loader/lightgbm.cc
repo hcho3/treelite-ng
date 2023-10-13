@@ -7,6 +7,7 @@
 
 #include "./detail/lightgbm.h"
 
+#include <treelite/detail/file_utils.h>
 #include <treelite/enum/task_type.h>
 #include <treelite/enum/typeinfo.h>
 #include <treelite/logging.h>
@@ -26,7 +27,6 @@
 #include <utility>
 #include <variant>
 
-#include "./detail/file_utils.h"
 #include "./detail/string_utils.h"
 
 namespace {
@@ -38,7 +38,7 @@ inline std::unique_ptr<treelite::Model> ParseStream(std::istream& fi);
 namespace treelite::model_loader {
 
 std::unique_ptr<treelite::Model> LoadLightGBMModel(std::string const& filename) {
-  std::ifstream fi = detail::OpenFileForReadAsStream(filename);
+  std::ifstream fi = treelite::detail::OpenFileForReadAsStream(filename);
   return ParseStream(fi);
 }
 

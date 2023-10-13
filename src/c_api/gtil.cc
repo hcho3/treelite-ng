@@ -10,6 +10,8 @@
 #include <treelite/gtil.h>
 #include <treelite/logging.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 
 #include "./c_api_utils.h"
@@ -27,8 +29,8 @@ int TreeliteGTILDeleteConfig(TreeliteGTILConfigHandle handle) {
   API_END();
 }
 
-int TreeliteGTILGetOutputShape(TreeliteModelHandle model, size_t num_row,
-    TreeliteGTILConfigHandle config, uint64_t const** out, uint64_t* out_ndim) {
+int TreeliteGTILGetOutputShape(TreeliteModelHandle model, std::size_t num_row,
+    TreeliteGTILConfigHandle config, std::uint64_t const** out, std::uint64_t* out_ndim) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
   auto const* config_ = static_cast<treelite::gtil::Configuration const*>(config);
@@ -40,7 +42,7 @@ int TreeliteGTILGetOutputShape(TreeliteModelHandle model, size_t num_row,
 }
 
 int TreeliteGTILPredict(TreeliteModelHandle model, void const* input, char const* input_type,
-    uint64_t num_row, void* output, TreeliteGTILConfigHandle config) {
+    std::uint64_t num_row, void* output, TreeliteGTILConfigHandle config) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
   auto const* config_ = static_cast<treelite::gtil::Configuration const*>(config);

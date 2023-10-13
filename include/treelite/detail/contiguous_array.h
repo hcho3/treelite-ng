@@ -201,7 +201,7 @@ template <typename T>
 inline void ContiguousArray<T>::Extend(std::vector<T> const& other) {
   TREELITE_CHECK(owned_buffer_) << "Cannot add elements when using a foreign buffer; clone first";
   if (other.empty()) {
-    return;  // appending an empty vector is a no-op
+    return;  // Appending an empty vector is a no-op
   }
   std::size_t newsize = size_ + other.size();
   if (newsize > capacity_) {
@@ -219,11 +219,45 @@ inline void ContiguousArray<T>::Extend(std::vector<T> const& other) {
 }
 
 template <typename T>
+inline void ContiguousArray<T>::Extend(ContiguousArray const& other) {
+  TREELITE_CHECK(owned_buffer_) << "Cannot add elements when using a foreign buffer; clone first";
+  if (other.Empty()) {
+    return;  // Appending an empty vector is a no-op
+  }
+  std::size_t newsize = size_ + other.Size();
+  if (newsize > capacity_) {
+    std::size_t newcapacity = capacity_;
+    if (newcapacity == 0) {
+      newcapacity = 1;
+    }
+    while (newcapacity <= newsize) {
+      newcapacity *= 2;
+    }
+    Reserve(newcapacity);
+  }
+  std::memcpy(&buffer_[size_], static_cast<void const*>(other.Data()), sizeof(T) * other.Size());
+  size_ = newsize;
+}
+
+template <typename T>
 inline std::vector<T> ContiguousArray<T>::AsVector() const {
   auto const size = Size();
   std::vector<T> vec(size);
   std::copy(buffer_, buffer_ + size, vec.begin());
   return vec;
+}
+
+template <typename T>
+inline bool ContiguousArray<T>::operator==(ContiguousArray const& other) {
+  if (Size() != other.Size()) {
+    return false;
+  }
+  for (std::size_t i = 0; i < Size(); ++i) {
+    if (buffer_[i] != other.buffer_[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 template <typename T>

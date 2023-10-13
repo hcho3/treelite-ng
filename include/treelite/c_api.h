@@ -556,6 +556,47 @@ TREELITE_DLL int TreeliteFreeModel(TreeliteModelHandle handle);
 /*! \} */
 
 /*!
+ * \defgroup serializer Functions to serialize model objects
+ * \{
+ */
+/*!
+ * \brief Serialize (persist) a model object to disk
+ * \param handle Handle to the model object
+ * \param filename Name of the file to which to serialize the model. The file will be using a
+ *                 binary format that's optimized to store the Treelite model object efficiently.
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteSerializeModelToFile(TreeliteModelHandle handle, char const* filename);
+/*!
+ * \brief Deserialize (load) a model object from disk
+ * \param filename Name of the file from which to deserialize the model. The file should be created
+ *                 by a call to \ref TreeliteSerializeModelToFile.
+ * \param out Handle to the model object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDeserializeModelFromFile(char const* filename, TreeliteModelHandle* out);
+/*!
+ * \brief Serialize (persist) a model object to a byte sequence
+ * \param handle Handle to the model object
+ * \param out_bytes Byte sequence containing serialized model
+ * \param out_bytes_len Length of out_bytes
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteSerializeModelToBytes(
+    TreeliteModelHandle handle, char const** out_bytes, size_t* out_bytes_len);
+/*!
+ * \brief Deserialize (load) a model object from a byte sequence
+ * \param bytes Byte sequence containing serialized model. The string should be created by a call to
+ *              \ref TreeliteSerializeModelToBytes.
+ * \param bytes_len Length of bytes
+ * \param out Handle to the model object
+ * \return 0 for success, -1 for failure
+ */
+TREELITE_DLL int TreeliteDeserializeModelFromBytes(
+    char const* bytes, size_t bytes_len, TreeliteModelHandle* out);
+/*! \} */
+
+/*!
  * \defgroup gtil General Tree Inference Library (GTIL), providing a reference implementation for
  * predicting with decision trees. GTIL is useful in cases it is infeasible to build the
  * tree models as native shared libs.
