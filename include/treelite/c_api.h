@@ -548,6 +548,15 @@ TREELITE_DLL int TreeliteQueryNumTree(TreeliteModelHandle model, size_t* out);
  */
 TREELITE_DLL int TreeliteQueryNumFeature(TreeliteModelHandle model, int* out);
 /*!
+ * \brief Concatenate multiple model objects into a single model object by copying
+ *        all member trees into the destination model object
+ * \param objs Pointer to the beginning of the list of model objects
+ * \param len Number of model objects
+ * \param out Used to save the concatenated model
+ */
+TREELITE_DLL int TreeliteConcatenateModelObjects(
+    TreeliteModelHandle const* objs, size_t len, TreeliteModelHandle* out);
+/*!
  * \brief Delete model from memory
  * \param handle Model to remove
  * \return 0 for success, -1 for failure

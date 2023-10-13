@@ -9,6 +9,7 @@
 #include <treelite/c_api_error.h>
 #include <treelite/tree.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 
@@ -52,6 +53,17 @@ int TreeliteQueryNumFeature(TreeliteModelHandle model, int* out) {
   API_BEGIN();
   auto const* model_ = static_cast<treelite::Model const*>(model);
   *out = model_->num_feature;
+  API_END();
+}
+
+int TreeliteConcatenateModelObjects(
+    TreeliteModelHandle const* objs, std::size_t len, TreeliteModelHandle* out) {
+  API_BEGIN();
+  std::vector<treelite::Model const*> model_objs(len, nullptr);
+  std::transform(objs, objs + len, model_objs.begin(),
+      [](TreeliteModelHandle e) { return static_cast<const treelite::Model*>(e); });
+  auto concatenated_model = ConcatenateModelObjects(model_objs);
+  *out = static_cast<TreeliteModelHandle>(concatenated_model.release());
   API_END();
 }
 
