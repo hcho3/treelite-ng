@@ -65,11 +65,12 @@ endif()
 # When installing dependencies, use Conda environment if available
 if(DETECT_CONDA_ENV)
   if(DEFINED ENV{CONDA_PREFIX})
-    set(CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX};${CMAKE_PREFIX_PATH}")
+    string(REPLACE "\\" "/" CONDA_PREFIX "$ENV{CONDA_PREFIX}")
+    set(CMAKE_PREFIX_PATH "${CONDA_PREFIX};${CMAKE_PREFIX_PATH}")
     message(STATUS "Detected Conda environment, CMAKE_PREFIX_PATH set to: ${CMAKE_PREFIX_PATH}")
     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR USING_CONDA_INSTALL_PREFIX)
-      message(STATUS "No CMAKE_INSTALL_PREFIX argument detected, setting to: $ENV{CONDA_PREFIX}")
-      set(CMAKE_INSTALL_PREFIX $ENV{CONDA_PREFIX})
+      message(STATUS "No CMAKE_INSTALL_PREFIX argument detected, setting to: ${CONDA_PREFIX}")
+      set(CMAKE_INSTALL_PREFIX "${CONDA_PREFIX}")
       set(USING_CONDA_INSTALL_PREFIX ON CACHE BOOL "Installing into Conda prefix")
     endif()
   else()
@@ -123,28 +124,28 @@ else()
   endif()
   install(TARGETS ${INSTALL_TARGETS}
       EXPORT TreeliteTargets
-      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+      LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+      RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
       INCLUDES DESTINATION include)
-  install(DIRECTORY include/treelite ${PROJECT_BINARY_DIR}/include/treelite
-      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  install(DIRECTORY include/treelite "${PROJECT_BINARY_DIR}/include/treelite"
+      DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
   install(EXPORT TreeliteTargets
       FILE TreeliteTargets.cmake
       NAMESPACE treelite::
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/treelite)
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
   configure_package_config_file(
       cmake/TreeliteConfig.cmake.in
-      ${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake
-      INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/treelite)
+      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
+      INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
   write_basic_package_version_file(
-      ${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake
+      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
       VERSION ${PROJECT_VERSION}
       COMPATIBILITY SameMajorVersion)
   install(FILES
-      ${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake
-      ${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/treelite)
+      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfig.cmake"
+      "${PROJECT_BINARY_DIR}/cmake/TreeliteConfigVersion.cmake"
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/treelite")
 endif()
 
 write_version()
