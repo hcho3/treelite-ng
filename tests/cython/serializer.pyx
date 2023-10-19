@@ -16,7 +16,7 @@ import treelite
 
 
 cdef extern from "treelite/c_api.h":
-    ctypedef void* ModelHandle
+    ctypedef void* TreeliteModelHandle
 
 
 cdef extern from "treelite/pybuffer_frame.h" namespace "treelite":
@@ -28,9 +28,9 @@ cdef extern from "treelite/pybuffer_frame.h" namespace "treelite":
 
 cdef extern from "treelite/tree.h" namespace "treelite":
     cdef cppclass Model:
-        vector[PyBufferFrame] GetPyBuffer() except +
+        vector[PyBufferFrame] SerializeToPyBuffer() except +
         @staticmethod
-        unique_ptr[Model] CreateFromPyBuffer(vector[PyBufferFrame]) except +
+        unique_ptr[Model] DeserializeFromPyBuffer(vector[PyBufferFrame]) except +
 
 
 cdef extern from "Python.h":
@@ -76,17 +76,17 @@ cdef PyBufferFrameWrapper MakePyBufferFrameWrapper(PyBufferFrame handle):
     return wrapper
 
 
-cdef list _get_frames(ModelHandle model):
+cdef list _get_frames(TreeliteModelHandle model):
     return [memoryview(MakePyBufferFrameWrapper(v))
-            for v in (<Model*>model).GetPyBuffer()]
+            for v in (<Model*>model).SerializeToPyBuffer()]
 
 
-cdef ModelHandle _init_from_frames(vector[PyBufferFrame] frames) except *:
-    return <ModelHandle>Model.CreateFromPyBuffer(frames).release()
+cdef TreeliteModelHandle _init_from_frames(vector[PyBufferFrame] frames) except *:
+    return <TreeliteModelHandle>Model.DeserializeFromPyBuffer(frames).release()
 
 
 def get_frames(model: uintptr_t) -> List[memoryview]:
-    return _get_frames(<ModelHandle> model)
+    return _get_frames(<TreeliteModelHandle> model)
 
 
 def init_from_frames(frames: List[np.ndarray],
