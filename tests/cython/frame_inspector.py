@@ -18,7 +18,10 @@ def inspect_frames():
         )
     ):
         print(f"Frame {idx}: {format_str} {itemsize}")
-        print(textwrap.indent(str(frame), "    "))
+        if format_str == "=c" and itemsize == 1:
+            print(textwrap.indent('"' + frame.tobytes().decode("utf-8") + '"', "    "))
+        else:
+            print(textwrap.indent(str(frame), "    "))
 
 
 if __name__ == "__main__":
