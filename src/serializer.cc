@@ -124,13 +124,15 @@ class Deserializer {
     mixin_->DeserializeScalar(&major_ver);
     mixin_->DeserializeScalar(&minor_ver);
     mixin_->DeserializeScalar(&patch_ver);
-    if (major_ver != TREELITE_VER_MAJOR && !(major_ver == 3 && minor_ver == 9)) {
-      TREELITE_LOG(FATAL) << "Cannot load model from a different major Treelite version or "
-                          << "a version before 3.9.0." << std::endl
-                          << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
-                          << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
-                          << "The model checkpoint was generated from Treelite version "
-                          << major_ver << "." << minor_ver << "." << patch_ver;
+    if (major_ver != TREELITE_VER_MAJOR) {
+      TREELITE_CHECK(major_ver == 3 && minor_ver == 9)
+          << "Cannot load model from a different major Treelite version or "
+          << "a version before 3.9.0." << std::endl
+          << "Currently running Treelite version " << TREELITE_VER_MAJOR << "."
+          << TREELITE_VER_MINOR << "." << TREELITE_VER_PATCH << std::endl
+          << "The model checkpoint was generated from Treelite version " << major_ver << "."
+          << minor_ver << "." << patch_ver;
+      TREELITE_LOG(FATAL) << "Not implemented: deserialize from 3.9 model";
     } else if (major_ver == TREELITE_VER_MAJOR && minor_ver > TREELITE_VER_MINOR) {
       TREELITE_LOG(WARNING)
           << "The model you are loading originated from a newer Treelite version; some "
