@@ -345,14 +345,17 @@ class Deserializer {
     model->num_class = std::vector<std::int32_t>{num_class};
     model->target_id = std::vector<std::int32_t>(model->num_tree_, 0);
     model->class_id = std::vector<std::int32_t>(model->num_tree_, 0);
+    model->task_type = TaskType::kRegressor;
     if (task_type == TaskTypeV3::kMultiClfGrovePerClass) {
       TREELITE_CHECK(task_param.grove_per_class) << "Invariant violated";
+      model->task_type = TaskType::kMultiClf;
       model->leaf_vector_shape = std::vector<std::int32_t>{1, 1};
       for (std::int32_t i = 0; i < model->num_tree_; ++i) {
         model->class_id[i] = i % num_class;
       }
     } else if (task_type == TaskTypeV3::kMultiClfProbDistLeaf) {
       TREELITE_CHECK(!task_param.grove_per_class) << "Invariant violated";
+      model->task_type = TaskType::kMultiClf;
       model->leaf_vector_shape
           = std::vector<std::int32_t>{1, static_cast<std::int32_t>(task_param.num_class)};
       for (std::int32_t i = 0; i < model->num_tree_; ++i) {
@@ -370,6 +373,12 @@ class Deserializer {
     ModelParamV3 model_param;
     mixin_->DeserializeScalar(&model_param);
     model->postprocessor = std::string(model_param.pred_transform);
+    if (model->postprocessor == "max_index") {
+      model->postprocessor = "softmax";  // max_index no longer supported; force it to softmax
+    }
+    if (model->postprocessor == "sigmoid") {  // Heuristic: sigmoid indicates binary classifier
+      model->task_type = TaskType::kBinaryClf;
+    }
     model->sigmoid_alpha = model_param.sigmoid_alpha;
     model->ratio_c = model_param.ratio_c;
     model->base_scores = std::vector<double>{static_cast<double>(model_param.global_bias)};
